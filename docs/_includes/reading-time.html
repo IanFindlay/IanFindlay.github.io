@@ -1,0 +1,16 @@
+{% capture words %}
+  {{ page.content | number_of_words }}
+{% endcapture %}
+
+{% capture time %}
+  {{words | divided_by: 180}}
+{% endcapture %}
+
+{% if time < "2" %}
+  {% assign min_plural = "minute" %}
+{% else %}
+  {% assign min_plural = "minutes" %}
+{% endif %}
+
+Reading Time: ~ {{ time }} {{ min_plural }}
+
