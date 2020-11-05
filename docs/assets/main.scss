@@ -4,17 +4,19 @@
 
 @import "minima";
 
-.tags-section {
-  display: flex;
-  justify-content: flex-start;
-  
-  margin-top: 100px;
-  padding-top: 10px;
-  font-size: 1.2rem;
-  border-top: 1px solid lightgray;
+.dt-published {
+  margin-right: 5px;
 }
 
-.tags-preamble {
-  font-weight: bold;
-  margin-right: 10px;
+.post-tags {
+  margin-top: -10px;
+}
+
+.tagpage-alltags {
+  margin-top: 100px;
+}
+
+.tags-tags {
+  font-size: 1.2rem;
+  margin-right: 5px;
 }
