@@ -1,0 +1,164 @@
+---
+layout: post
+title:  "Advent of Code 2020 - Day 01: Report Repair"
+date:   2020-12-01 
+categories: advent-of-code
+tags: advent-of-code advent-of-code-2020 python
+---
+
+This year, Advent of Code has take a departure from saving Christmas
+and tasked you with saving your vacation instead. The hotel bill looming
+at the end of this may be imposing but the first day of puzzles is not.
+
+### Part One
+
+For the full instructions and verbiage go to
+[the AoC site,](https://adventofcode.com/2020/day/1)
+but here is the first part of the puzzle in short:
+
+> You have a list of integers and have to find the product of the two that sum
+to 2020.
+
+Two approaches came immediately to mind:
+
+- Using a nested loop to check each possible combination of two integers for
+the pair that sum to 2020.
+- Using a set so that only one iteration through the integers is needed as the
+presence within the set of the integer that would pair with it to sum to 2020
+can be checked.
+
+I opted to use the set; I like how it's further away from how I would solve
+this without the use of programming.
+
+{% highlight python %}
+
+with open ('input.txt', 'r') as expense_report:
+    entries = set([int(line) for line in expense_report.readlines()])
+
+for entry in entries:
+    if 2020 - entry in entries:
+        answer_one = entry * (2020 - entry)
+        break
+
+# Answer One
+print("Product of the two entries that sum to 2020:", answer_one)
+
+{% endhighlight %}
+
+### Part Two
+
+Part two is, as is usually the case, the same puzzle with a slight
+modification:
+
+> Find the product of three (instead of two) integers that sum to 2020
+
+My immediate reaction to part two was to write the recursive function detailed
+at the bottom of this post. Sense soon prevailed, however, and I added an
+additional loop to the above. Replace the task of summing to 2020 with
+that of summing to remaining_amount
+(`2020 - the current integer`) and the logic remains the same.
+
+{% highlight python %}
+
+answer_two = False
+for entry in entries:
+    remaining_amount = 2020 - entry
+    for entry_two in entries:
+        if remaining_amount - entry_two in entries and entry_two != entry:
+            answer_two = entry * entry_two * (remaining_amount - entry_two)
+            break
+
+    if answer_two:
+        break
+
+# Answer Two
+print("Product of the three entries that sum to 2020:", answer_two)
+
+{% endhighlight %}
+
+Using multiple breaks to get out of nested loops never sits right with me.
+I thought about refactoring it into a function, so I could simply return
+once the answer was found, but without refactoring the first part into it
+as well it seemed unnecessary.
+
+I could have placed my nested loops with a try/except block and raised an
+error to get out of the loop. This has the advantage of breaking out of
+any depth of nesting but feels like a crude approach to me:
+
+{% highlight python %}
+
+try:
+   for x in loop1:
+       for y in loop2:
+           if answer:
+	       raise LoopBreak
+
+except LoopBreak:
+    answer = x * y
+
+{% endhighlight %}
+
+### A Recursive Solution
+
+For each integer in the puzzle input, it can either be used as one of the
+two/three values or not. This brought to mind a function that is often used to
+demonstrate the power of recursion - calculating how many combinations of a
+given set of coins can be combined to make a set amount.
+
+A recursive solution was clearly not required for either part of this puzzle
+and I doubt it is in anyway advantageous but I coded it anyway.
+
+{% highlight python %}
+
+def sums_to_target_product(entries_list: list, target: int,
+                           used_and_product: tuple, num_entries: int) -> int:
+    """Return product of entries that sum to target using given num_entries.
+    
+    For each entry, it can either be a part of the combination or not so
+    recursive calls representing these possibilities explores all
+    combinations until the solution (function assumes there is only one)
+    is found.
+
+    Args:
+        entries_list: Entries available.
+        target: Value to be reached.
+        used_and_product: (number of entries used, product of used entries).
+        num_entries: Number of entries required to be used for valid answer.
+
+    Returns:
+        Product of entries used in valid solution i.e. used_and_product[1]
+        or None if no solution is found.
+    """
+    if target == 0 and used_and_product[0] == num_entries:
+        return used_and_product[1]
+
+    if not entries_list or target <= 0 or used_and_product[0] == num_entries:
+        return None
+
+    # Don't use first entry in entries_list path
+    not_used = sums_to_target_product(entries_list[1:], target,
+                               used_and_product, num_entries)
+    if not_used:
+        return not_used
+
+    # Use first entry in entries_list path
+    used = sums_to_target_product(
+            entries_list[1:], target - entries_list[0],
+            (used_and_product[0] + 1, used_and_product[1] * entries_list[0]),
+            num_entries
+    )
+    if used:
+        return used
+
+
+list_of_entries = list(entries)
+
+# Answer One
+print("Product of the two entries that sum to 2020:",
+      sums_to_target_product(list_of_entries, 2020, (0, 1), 2))
+
+# Answer Two
+print("Product of the three entries that sum to 2020:",
+      sums_to_target_product(list_of_entries, 2020, (0, 1), 3))
+
+{% endhighlight %}
