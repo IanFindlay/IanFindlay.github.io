@@ -14,16 +14,18 @@ rivalry comprise this continuation of Advent of Code 2020.
 Find out about the store rivalry and the exact wording of the puzzle on the
 [official page](https://adventofcode.com/2020/day/2), but here it is in brief:
 
-> Each line of the input contains two numbers - a minimum amount of times
-and a maximum amount of times  - that the mentioned letter can be repeated
-for the password, which is adjacent to the policy, to be considered valid.
+> The relevant parts of each line of the input consists of a string (password),
+a charcter and two numbers representing the minimum and maximum amount of times
+that the character can be repeated in the password for it to be considered
+valid; the number of these valid passwords in you puzzle input is the answer to
+part one.
 
 One of the examples given in the puzzle is:
 
 `1-3 a: abcde`
 
 For this to be valid there has to be at least 1 and no more than 3 of the
-letter "a" in the password which is accurate in this case. 
+letter "a" in the password which is accurate in this case.
 
 The only real complication in this puzzle is the initial parsing of the lines.
 The format of each line is a little involved, you need to separate it into
@@ -57,17 +59,17 @@ The shopkeeper's mistake is our part two as the policies actually need to be
 interpreted differently:
 
 > Rather than representing the range of acceptable occurrences of the
-character the numbers indicate two positions within the password. One, and only
-one, of these positions has to be the character.
+character the numbers indicate two positions within the password. One, **and
+only one**, of these positions has to be the character.
 
 Here's one of the examples given:
 
 `2-9 c: ccccccccc`
 
-Is invalid as both characters at position 2 (index 1) and position 9 (index 8)
-are "c". The rest of the password is irrelevant.
+This example is invalid as both characters at position 2 (index 1) and position
+9 (index 8) are "c". The rest of the password is irrelevant.
 
-This new criteria can easily be tested with a couple of and statements after
+This new criteria can easily be tested with a couple of AND statements after
 the same parsing as above:
 
 {% highlight python %}
@@ -86,7 +88,8 @@ With my times posted on the scoreboard, though nowhere near the top and not
 only because of my British timezone, I decided to combine both parts into one,
 regex using loop. This required importing the re module, grouping parts of the
 regex via brackets and assigning the variables by unpacking the tuple within
-the list given by the re.findall() function. Here is my final day 2 solution:
+the list given by the re module's findall() function. Here is my final day
+2 solution:
 
 {% highlight python %}
 

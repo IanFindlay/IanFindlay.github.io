@@ -8,7 +8,8 @@ tags: advent-of-code advent-of-code-2020 python
 
 This year, Advent of Code has take a departure from saving Christmas
 and tasked you with saving your vacation instead. The hotel bill looming
-at the end of this may be imposing but the first day of puzzles is not.
+at the end of this may be imposing but the first day of puzzles is
+far from it.
 
 ### Part One
 
@@ -83,7 +84,7 @@ as well it seemed unnecessary.
 
 I could have placed my nested loops with a try/except block and raised an
 error to get out of the loop. This has the advantage of breaking out of
-any depth of nesting but feels like a crude approach to me:
+any depth of nesting but feels like an even cruder approach to me:
 
 {% highlight python %}
 
@@ -128,6 +129,7 @@ def sums_to_target_product(entries_list: list, target: int,
     Returns:
         Product of entries used in valid solution i.e. used_and_product[1]
         or None if no solution is found.
+
     """
     if target == 0 and used_and_product[0] == num_entries:
         return used_and_product[1]
