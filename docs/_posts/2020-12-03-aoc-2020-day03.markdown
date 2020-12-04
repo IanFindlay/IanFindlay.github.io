@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Advent of Code 2020 - Day 03: Toboggan Trajectory"
-date:   2020-12-02 
+date:   2020-12-03 
 categories: advent-of-code
 tags: advent-of-code advent-of-code-2020 python
 ---
