@@ -1,0 +1,79 @@
+---
+layout: post
+title:  "Advent of Code 2020 - Day 04: Passport Processing"
+date:   2020-12-04 
+categories: advent-of-code
+tags: advent-of-code advent-of-code-2020 python
+---
+
+Required fields, data validation and another bout of regex allows us to board
+the airplane that is day 4.
+
+### Part One
+
+Within the [usual verbiage](https://adventofcode.com/2020/day/4) lies a rather
+simple part one:
+
+> Given a batch file of passports, comprised of fields and data, find how many
+contain all of the required fields and are therefore valid.
+
+The first slight complication for today's puzzle comes from parsing the batch
+file as whilst the passports are clearly separated the number of fields per
+line varies arbitrarily. I bypassed this parsing with regex, which is starting
+to feel like a sub-theme this holiday season. Gathering the parsed fields for
+each passport into a set and comparing it to a set containing all of the
+required fields gives you the number of valid passports and today's first star:
+
+{% highlight python %}
+
+import re
+
+
+with open ('input.txt', 'r') as batch_file:
+    passports = [passport for passport in batch_file.read().split('\n\n')]
+
+required_fields = {"byr", "iyr", "eyr", "hgt", "hcl", "ecl", "pid"}
+
+valid = 0
+passport_regex = re.compile('\w*:\.*')
+for passport in passports:
+    fields = set()
+    for data in passport_regex.findall(passport):
+        fields.add(data.split(':')[0])
+
+    if required_fields - fields == set():
+        valid += 1
+
+# Answer One
+print("Number of valid passports:", valid)
+
+{% endhighlight %}
+
+### Part Two
+
+Of course, having the right fields does not a valid passport make and part two
+can be, somewhat predictably, summarised as:
+
+> Bring data validation to the passport booth's table with rules for each of
+the required fields.
+
+None of the rules are complicated but there were a couple of pitfalls
+that almost made me miss the flight:
+
+- The pid didn't have to start with a zero. The phrase 'leading zero' doesn't
+mean there has to be a zero, only that it is padded with them. Had I looked
+closely at the examples I would have saved myself a bit of trouble and a
+few minutes of time.
+
+- One pid problem down and another raised it's head due to my regex ring-rust.
+Part of the pid validation is its length, specifying this length with [0-9]{9}
+ensures it is **at least** 9 digits long but not, as I soon found out, that
+it is **exactly** 9 digits long.
+
+There's room for refinement in my part two, it feels more verbose than necessary,
+but the functions work, it yields the right answer and with part one refactored
+into it it looks like this:
+
+{% highlight python %}
+
+{% endhighlight %}
