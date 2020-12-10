@@ -1,0 +1,106 @@
+---
+layout: post
+title:  "Advent of Code 2020 - Day 05: Binary Boarding"
+date:   2020-12-05 
+categories: advent-of-code
+tags: advent-of-code advent-of-code-2020 python
+---
+
+Look at your boarding pass and take a seat for Advent of Code's latest treat.
+
+### Part One
+
+[Today's puzzles](https://adventofcode.com/2020/day/5) see a forgotten boarding
+pass and a bizarre binary seating system collide to yield a pair of simple but
+satisfying questions. Part one in brief:
+
+> Use your scans of everyone else's pass to decode their seat and work out
+the highest seat ID.
+
+There isn't much to say about my implementation today as I simply decoded the
+binary space partition for each scanned boarding pass as instructed.
+Moving through each code character by character and using floor division + 1
+to change the range of rows/cols still in contention soon saw me with seats
+identified and seat IDs calculated.
+
+Of course knowing other's seats doesn't mean I can park my arse in the right
+place so star in hand it was time for part two.
+
+### Part Two
+
+A full flight and a seat to find as the fasten seatbelt sign alights sees part
+two predictably asking you to finish what you've started.
+
+> Find the ID of your seat given that it isn't at the very front or back and
+the seats with ID -1 and +1 of yours exists.
+
+This is the sort of part two I dislike: trivial and with information to make the
+puzzle work that is so arbitrary it hasn't even been dressed up as a quirk of
+the machine or an overly convoluted system. My seat won't be at the very front
+or back (fair enough) and the adjacent seat IDs will be present (?).
+
+I decided to calculate the possible seat IDs, as the range of rows and columns
+is know, ignoring the first and last row and checking for the adjacent IDs in
+a set of IDs made during part one. Overall, my version of the day looks like
+this:
+
+{% highlight python %}
+
+def decode_binary_space_partition(code: str) -> tuple:
+    """Decode binary partition character code and return (row, col) tuple.
+    Args:
+        code: A 9 character code - The first 7 characters are each either
+              "F"ront or "B"ack and the last 3 are either "L"eft or "R"ight.
+    Returns:
+        tuple consisting of two integers representing row and column.
+    """
+    row_low = col_low = 0
+    row_high = 127
+    col_high = 7
+    for char in code:
+        if char == "F":
+            row_high -= (row_high - row_low) // 2 + 1
+        elif char == "B":
+            row_low += (row_high - row_low) // 2 + 1
+        elif char == "L":
+            col_high -= (col_high - col_low) // 2 + 1
+        elif char == "R":
+            col_low += (col_high - col_low) // 2 + 1
+
+    row = row_low if code[6] == "F" else row_high
+
+    col = col_low if code[9] == "L" else col_high
+
+    return (row, col)
+
+
+with open ('input.txt', 'r') as scanned:
+    seat_codes = [seat_code.strip() for seat_code in scanned.readlines()]
+
+seats = set()
+seat_ids = set()
+for seat_code in seat_codes:
+    row, col = decode_binary_space_partition(seat_code)
+    seats.add((row, col))
+    seat_id = row * 8 + col
+    seat_ids.add(seat_id)
+
+# Answer One
+print("Highest seat ID scanned:", max(seat_ids))
+
+my_seat_id = None
+for row in range(1, 127):
+    for col in range(0, 8):
+        seat_id = row * 8 + col
+        if (row, col) not in seats:
+            if seat_id + 1 in seat_ids and seat_id - 1 in seat_ids:
+                my_seat_id = seat_id
+                break
+
+    if my_seat_id:
+        break
+
+# Answer Two
+print("ID of my seat:", my_seat_id)
+
+{% endhighlight %}
