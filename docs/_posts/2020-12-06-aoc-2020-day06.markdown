@@ -1,0 +1,66 @@
+---
+layout: post
+title:  "Advent of Code 2020 - Day 06: Custom Customs"
+date:   2020-12-06 
+categories: advent-of-code
+tags: advent-of-code advent-of-code-2020 python
+---
+
+An easy day with little to discuss sees custom forms, incapable groups of
+people and an alphabet of answers come together for today's Advent of Code.
+
+### Part One
+
+As usual, a more thorough explanation of today's task can be found
+[on the AoC website](https://adventofcode.com/2020/day/6) but here is part one
+in brief:
+
+> Sum of the numbers of unique letters in each group
+
+One word summarises my thought process and solution for this one and that is...
+Sets:
+
+{% highlight python %}
+
+with open ('input.txt', 'r') as forms:
+    groups = [group_answers.strip() for group_answers in forms.read().split('\n\n')]
+
+overall_yes = 0
+for group in groups:
+    group_yes = set()
+    for member_yes in group.split('\n'):
+        for char in member_yes:
+            group_yes.add(char)
+
+    overall_yes += len(group_yes)
+
+# Answer One
+print("Sum of all groups yes counts:", overall_yes)
+
+{% endhighlight %}
+
+### Part Two
+
+I've been through enough airports to know that Customs never runs quite this
+smooth and so it is in part two:
+
+> Sum the number of letters shared between all members of the group
+
+But, unfortunately for the feeling inside me that this blog post is almost
+entirely pointless, part two isn't really any more interesting that part one.
+For each group, I used the first member to create a set and then intersected
+it with each additional member counting the length of the set at the end and
+adding it to the total across all groups:
+
+{% highlight python %}
+
+overall_group_yes = 0
+for group in groups:
+    members = group.split('\n')
+    group_yes = set([char for char in members[0]])
+    for member in members[1:]:
+        group_yes = set([char for char in member]).intersection(group_yes)
+
+    overall_group_yes += len(group_yes)
+
+{% endhighlight %}
