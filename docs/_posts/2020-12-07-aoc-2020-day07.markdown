@@ -1,0 +1,137 @@
+---
+layout: post
+title:  "Advent of Code 2020 - Day 07: Handy Haversacks"
+date:   2020-12-07 
+categories: advent-of-code
+tags: advent-of-code advent-of-code-2020 python
+---
+
+My favourite day so far. Combining the absurd AoC situations with questions
+that can be approached in various ways, feel satisfying to solve and with
+a part two that rewarded a well written part one.
+
+For the puzzle itself,
+[go to the offical page](https://adventofcode.com/2020/day/7) but here's what
+I did:
+
+With each line having a similar, but not identical, format I immediately
+imported the Regex module and fumbled my way to the following:
+
+{% highlight python %}
+
+re.compile('(\d)*?\s?(\w*\s\w*)\sbags?')
+
+{% endhighlight %}
+
+The first group collects the number of bags and is made optional in order to
+catch both those bags that contain no other bags and the primary bag of the line.
+The second group captures the two word colours of any contained bag with the '?'
+at the end accounting for the purals.
+
+The data structure I decided upon made use of a dictionary that associated a bag's
+colour with an instance of a Bag class. I decided upon a class as it would make
+flagging bags that lead to a 'shiny gold' bag simple and remain flexible
+for any potential part two. Each Bag had its contents processed into a
+colour: number of bags dictionary and a leads_to_shiny_bag flag that was
+initialised as False and was set to True if the shiny gold bag was one of the
+ones contained.
+
+Information parsed, part one meant cycling through each Bag and checking each
+of the bags it contains for a True 'shiny gold' boolean. If found, the Bag's
+boolean would be changed to True. The loop ends when no further booleans are
+changed.
+
+Part two meant exploring the contents of the shiny gold bag and calculating
+how many bags it must contain. Due to the data structure I used for part one,
+all I had to do was create a queue that kept track of the colour of the bag
+to explore and the current 'multiplier' of that bag i.e. the product of the
+amounts of all of it's 'parent' bags. When the queue is exhausted, so is the
+puzzle. Here's the current version of the code:
+
+{% highlight python %}
+
+import re
+
+
+class Bag:
+    """A Class that represents a bag."""
+
+    def __init__(self, colour, contains):
+        """Initialisation of the class.
+        Args:
+            colour (str): Colour of the bag.
+            contains (list): List of tuples of (number of bags, colour of bag)
+                representing how many of each inner bag this Bag must contain.
+        """
+        self.colour = colour
+        self.contains = contains
+
+        #: bool: Whether this bag is flagged as containing a 'shiny gold' bag
+        self.leads_to_shiny_gold = False
+
+        #: dictionary: A dictionary of contained bags - colour: number of bags
+        self.contents = self.__process_contents()
+
+    def __process_contents(self):
+        """Process what bag contains into dict.
+            Returns:
+                dict: Contained bags formatted colour: number of bags.
+        """
+        contents = {}
+        for contained_bag in self.contains:
+            number, colour = contained_bag
+            if colour == 'shiny gold':
+                self.leads_to_shiny_gold = True
+            if colour != 'no other':
+                contents[colour] = int(number)
+
+        return contents
+
+
+with open ('inputs/day_07.txt', 'r') as f:
+    luggage_rules = [rule.strip() for rule in f.readlines()]
+
+bag_regex = re.compile('(\d)*?\s?(\w*\s\w*)\sbags?')
+bags = {}
+for rule in luggage_rules:
+    parsed_rule = bag_regex.findall(rule)
+    subject_bag = parsed_rule[0][1] # [0] is blank
+    bags[subject_bag] = Bag(subject_bag, parsed_rule[1:])
+
+bags_that_can_contain_shiny = 0
+while True:
+    for bag in bags:
+        for inner_bag in bags[bag].contents:
+            if bags[inner_bag].leads_to_shiny_gold:
+                bags[bag].leads_to_shiny_gold = True
+
+    shiny_count = 0
+    for bag in bags:
+        if bags[bag].leads_to_shiny_gold:
+            shiny_count += 1
+
+    if shiny_count == bags_that_can_contain_shiny:
+        break
+    else:
+        bags_that_can_contain_shiny = shiny_count
+
+
+# Answer One
+print("Number of bag colours that eventually contain shiny:",
+       bags_that_can_contain_shiny)
+
+bags_within_gold = 0
+bags_to_explore = [('shiny gold', 1)]
+while bags_to_explore:
+    current_bag, multi = bags_to_explore.pop()
+    inner_bags = bags[current_bag].contents.items()
+    for inner_bag in inner_bags:
+        colour, num_bags = inner_bag
+        num_this_colour = num_bags * multi
+        bags_within_gold += num_this_colour
+        bags_to_explore.append((colour, num_this_colour))
+
+# Answer Two
+print("Number of bags required inside shiny gold bag:", bags_within_gold)
+
+{% endhighlight %}
