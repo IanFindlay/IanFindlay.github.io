@@ -1,0 +1,119 @@
+---
+layout: post
+title:  "Advent of Code 2020 - Day 09: Encoding Error"
+date:   2020-12-09 
+categories: advent-of-code
+tags: advent-of-code advent-of-code-2020 python
+---
+
+Christmas decryption is another staple of AoC and can be a code well worth
+cracking; day 9 sees an easy to parse input and simple instructions translated
+into an itertools dependent implementation that runs quickly enough but feels
+wasteful.
+
+Part one as written can be found on
+[the official page](https://adventofcode.com/2020/day/9) but here's my take on
+the task:
+
+### Part One - Import Antigravity 
+
+Itertools is part of the standard library, incredible at what it does and
+there is nothing wrong with using it's power to bring a puzzle to heel.
+I could code a slower, unoptimised version of the combination function myself
+but I don't think it would do an awful lot for today's code or, more
+importantly, my development. Still, I can't help but want to code my way around
+this corner with a better data structure, neat trick or some mathematical
+insight. Below is my failure to find any of these things:
+
+{% highlight python %}
+
+from itertools import combinations
+
+
+with open ('inputs/day_09.txt', 'r') as xmas:
+    numbers = [int(number.strip()) for number in xmas.readlines()]
+
+for index, number in enumerate(numbers[25:], 25):
+    prev_25 = numbers[index - 25 : index]
+    valid_next = set([sum(combo) for combo in combinations(prev_25, 2)])
+    if number not in valid_next:
+        break
+
+# Answer One
+print("First number that is not the sum of two numbers in the previous 25:",
+      numbers[index])
+
+{% endhighlight %}
+
+Iterating through the parsed integers, I generate all possible two integer sums
+from the previous 25 numbers and, if my current integer isn't within this set,
+break the loop and print it.
+
+It runs fast enough, translates the problem very directly into code and gets
+the right answer but I can't say that I'm satisfied with it. There are some
+obvious, immediate improvement that could be made:
+
+- Make the list a deque (or simply treat it as one at the expense of
+efficiency compared to importing it from the collections module) and
+dynamically update the previous 25 instead of slicing each time.
+
+- Check each combination (the sum of two of the numbers) as they are processed
+skipping the rest of them if the integer at the current index is produced.
+
+In a similar vein to the deque mentioned above, I played with the idea of
+updating the valid values as I iterated rather than calculating them all
+over again. This feels like a better way to do it but any implementation of
+this that came to mind seemed almost as clunky as recalculating them. The
+problem, as I saw it at the time, was that you would still have to go through
+the entire list of numbers, sum them with the one that is now 26 indices back
+and remove them from the list/set of valid numbers. Obviously, this is still
+a better approach but with the time pressure inherent in daily puzzles the
+advantage of doing fewer repeated calculations compared to bringing the
+power of itertools to bear didn't seem worth it.
+
+### Part Two
+
+Part two tasks you with finding a set on contiguous numbers (next to on another)
+that sum to the part one answer. I might be missing some key insight or clever
+shortcut, at this stage in my coding journey I quite often do, but to me the
+approach I have taken seems like the obvious, most reasonable one.
+
+Starting from the first integer, sum the values until you either reach the
+target number, in which case you have your solution and can stop the search, or
+go beyond it in which case you can move on to the second integer being the first
+of the contiguous set and do it all again. As is quite often the case, I haven't
+taken advantage of memoisation so a lot of sums are repeated; however, I
+anticipated - correctly - that the solution would be found fast enough without
+it.
+
+If I ever go back and rewrite part one, I'll optimise this part as well so time
+will tell if this is my final version of Day 9 part two:
+
+{% highlight python %}
+
+target_number = numbers[index]
+weakness_found = False
+starting_index = 0
+while True:
+    current_sum = summed_nums = 0
+    for number in numbers[starting_index:]:
+        current_sum += number
+        summed_nums += 1
+        if current_sum > target_number:
+            break
+        if current_sum == target_number:
+            weakness_found = True
+            break
+
+    if weakness_found:
+        break
+
+    starting_index += 1
+
+contiguous_nums = numbers[starting_index: starting_index + summed_nums]
+encryption_weakness = min(contiguous_nums) + max(contiguous_nums)
+
+# Answer Two
+print("Encryption weakness:", encryption_weakness)
+
+{% endhighlight %}
