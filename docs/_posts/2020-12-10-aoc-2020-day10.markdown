@@ -1,0 +1,128 @@
+---
+layout: post
+title:  "Advent of Code 2020 - Day 10: Adapter Array"
+date:   2020-12-10 
+categories: advent-of-code
+tags: advent-of-code advent-of-code-2020 python
+---
+
+A much appreciated jolt of energy from this one with a whimsical scenario, a
+part one that seems to be solvable in numerous ways and my favourite part two
+so far.
+
+### Part One
+
+[Here's the official page](https://adventofcode.com/2020/day/10) and here's my
+solution:
+
+Make a set of all of the possible output values - parse the list and add both
+0 and the max output + 3 to it - then construct a dictionary that relates
+each output to the valid adapters it can connect to i.e. those within -3 of
+their value.
+
+There is, thankfully and by design, only one way to construct the chain of
+adapters and much like day 7
+[(my post on which is here)](https://findlayian.com/advent-of-code/
+2020/12/07/aoc-2020-day07.html) I chose to 'percolate' the answer from the
+bottom with successive iterations until the data was unchanged. In this
+instance, success was indicated by a used_adapter set getting to the same
+length as the available_adapters set (-1 due to the final adapter not
+connecting into anything).
+
+Once the chain was built, iterating through the dictionary with two
+accumulators, one for the difference of one connections and another for the
+difference of 3 connections, granted the answer.
+
+{% highlight python %}
+
+with open ('input.txt', 'r') as adapters:
+    outputs = [int(number.strip()) for number in adapters.readlines()]
+
+outputs.append(max(outputs) + 3)
+outputs.append(0)
+available_adapters = set(outputs)
+
+joltage_dict = {}
+for output in outputs:
+    joltage_dict[output] = set()
+    for number in range(output - 3, output):
+        if number in available_adapters:
+            joltage_dict[output].add(number)
+
+used_adapters = set()
+while len(used_adapters) < len(available_adapters) - 1:
+    for joltage, possible_adapters in joltage_dict.items():
+        if len(possible_adapters) == 1:
+            used_adapters.update(possible_adapters)
+            continue
+
+        unused = set()
+        for adapter in possible_adapters:
+            if adapter not in used_adapters:
+                unused.add(adapter)
+
+        joltage_dict[joltage] = unused
+
+del joltage_dict[0]
+
+diff_of_one = 0
+diff_of_three = 0
+for adapter, connected_to in joltage_dict.items():
+    connected = connected_to.pop()
+    if adapter - connected == 1:
+        diff_of_one += 1
+    elif adapter - connected == 3:
+        diff_of_three += 1
+
+# Answer One
+print("1-jolt multiplied by 3-jolt differences:", diff_of_one * diff_of_three)
+
+{% endhighlight %}
+
+### Part Two
+
+When AoC gives you a explicit warning about size it means one of two things:
+
+- There is a mathematical trick that makes this trivial.
+
+- There is a data structure or programming concept that makes this tractable.
+
+The former can be interesting, the latter is where we find ourselves and what
+made this the most satisfying day so far. My mind quickly settled on what I am
+fairly certain is the point of this part... dynamic programming.
+
+#### Claiming to Code with Dynamism Seems Somewhat Indulgent
+
+Agreed, but that's not what dynamic programming is. If a problem's whole is
+somewhat indigestible but can be reduced to a tractable, recursive sub-problem
+then you can get your teeth into the entire thing. There is far more to it than
+this of course, but part two and the approach I took is a nice example of it.
+
+Working out the trillion+ valid pathways through a similar process to part one,
+modified due to the requirement of needing to use all of the adapters no longer
+being present, would have taken... far longer than is 'acceptable' for an AoC
+solution. The code is as follows:
+
+{% highlight python %}
+
+del outputs[-1]  # Remove 0 from output options
+adapter_paths = {}
+adapter_paths[0] = 1
+for adapter in sorted(outputs):
+    paths_to = 0
+    for n in (1, 2, 3):
+        paths_to += adapter_paths.get(adapter - n, 0)
+    adapter_paths[adapter] = paths_to
+
+# Answer Two
+print("Number of ways to arrange adapters to connect outlet to device:",
+      adapter_paths[outputs[-1]])
+
+{% endhighlight %}
+
+It works by sorting the adapters (lowest to highest), taking each in turn
+and calculating how many ways this particular value could have been reached.
+This value, the paths_to for each adapter, is the sum of the paths of all of
+the adapters up to 3 'joltage' lower than it. In this way, the details and
+memory toll of the actual paths are sidestepped and the number of them is
+only a dictionary call to that final (max + 3) adapter away.
