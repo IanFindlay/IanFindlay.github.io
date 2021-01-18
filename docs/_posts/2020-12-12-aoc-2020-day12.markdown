@@ -1,0 +1,164 @@
+---
+layout: post
+title:  "Advent of Code 2020 - Day 12: Rain Risk"
+date:   2020-12-12 
+categories: advent-of-code
+tags: advent-of-code advent-of-code-2020 python
+---
+
+A risk of rain results in a rather unnecessarily verbose pair of answers to
+today's AoC challenges. Easy to parse and implement, more concise code may
+have made it look better but my solution is solid nonetheless.
+
+Set sail with the full flotilla of information by visiting
+[the official page](https://adventofcode.com/2020/day/12) but here's how I
+caught two stars for day 12:
+
+### Part One
+
+{% highlight python %}
+
+with open ('inputs/day_12.txt', 'r') as f:
+    instructions = [row.strip() for row in f.readlines()]
+
+coords = [0, 0]
+directions = {0: 'E', 1: 'S', 2: 'W', 3: 'N'}
+current_direction = 0
+for instruction in instructions:
+    action = instruction[0]
+    value = int(instruction[1:])
+
+    if action == 'N':
+        coords[0] += value
+    elif action == 'S':
+        coords[0] -= value
+    elif action == 'E':
+        coords[1] += value
+    elif action == 'W':
+        coords[1] -= value
+    elif action == 'L':
+        current_direction = (current_direction - (value / 90)) % 4
+    elif action == 'R':
+        current_direction = (current_direction + (value / 90)) % 4
+    elif action == 'F':
+        facing = directions[current_direction]
+        if facing == 'N':
+            coords[0] += value
+        elif facing == 'S':
+            coords[0] -= value
+        elif facing == 'E':
+            coords[1] += value
+        elif facing == 'W':
+            coords[1] -= value
+
+# Answer One
+print("Manhattan distance from starting point:",
+      sum([abs(coord) for coord in coords]))
+
+{% endhighlight %}
+
+The main thing of note in part one is the implementation of the 'L' and 'R'
+instructions as the cardinal directions are incredibly simple to translate
+into movement along two axis but there is one thing of note here: the use
+of a list as opposed to a tuple for the coordinates variable. I often use a
+tuple to represent the x and y coordinates (not necessarily in that order) as
+their immutable nature allows them to be used as dictionary keys - a data
+structure that runs through my AoC answers - but on this occasion I opted for
+a list. Why? Simply because I knew that each instruction would only be
+modifying one of the coordinates and therefore that the mutability of a list
+would make this transformation more explicit and save a redundant reassigning
+of one of the coordinates. Now onto the rotation.
+
+Whenever rotation is involved I think of modular arithmetic - think of an
+analogue clock face being in mod 12 - and use the mod ("%") operator to
+track the direction currently faced. In this example, I map the four cardinals
+to the possible remainders after dividing by four (0, 1, 2, 3) and this allows
+me to ascertain and modify my rotation with ease. For example:
+
+- I'm facing North which is arbitrarily linked to 3 and need to turn 180
+degrees to the Right.
+
+- Dividing this angle by 90 reduces the 360 degrees of possible rotation into
+the four categories required for classification in terms of the four cardinal
+directions.
+
+- I've chose to view right-hand turns as positive and left-hand ones as
+negative but this is again arbitrary. So 180 degrees right translates into
+a rotation of '+2'.
+
+- Taking the current direction (3) adding the rotation (+2) and taking it mod 4
+gives us 1 which, the way I mapped it on above, means we are now facing South.
+
+The dictionary of integer:cardinal pairs isn't required, I could have kept it
+as numbers and kept the relationships in my head instead, but I think its
+readability and its lessening of cardinal confusion makes it a worthwhile
+addition. Let's set sail for...
+
+## Part Two
+
+The instructions were not movements of the boat (mainly) but movements of a
+waypoint near to the boat. Adding a slight complication but allowing a degree
+of copy and pasting that cries out for a refactor.
+
+{% highlight python %}
+
+coords = [0, 0]
+waypoint = [1, 10]
+for instruction in instructions:
+    action = instruction[0]
+    value = int(instruction[1:])
+
+    if action == 'N':
+        waypoint[0] += value
+    elif action == 'S':
+        waypoint[0] -= value
+    elif action == 'E':
+        waypoint[1] += value
+    elif action == 'W':
+        waypoint[1] -= value
+    elif action == 'L':
+        for n in range(value // 90):
+            new_waypoint = [None, None]
+            new_waypoint[1] = -waypoint[0]
+            new_waypoint[0] = waypoint[1]
+            waypoint = new_waypoint
+    elif action == 'R':
+        for n in range(value // 90):
+            new_waypoint = [None, None]
+            new_waypoint[1] = waypoint[0]
+            new_waypoint[0] = -waypoint[1]
+            waypoint = new_waypoint
+    elif action == 'F':
+        coords = [coords[0] + waypoint[0] * value,
+                  coords[1] + waypoint[1] * value]
+
+# Answer Two
+print("Actual Manhattan distance from starting point:",
+      sum([abs(coord) for coord in coords]))
+
+{% endhighlight %}
+
+Much of the implementation is identical to the above but there is one aspect
+worth touching upon: the mapping of the waypoint's rotation around the boat.
+
+I chose to again reduce the angle to map with the four cardinals but instead of
+using this value in a modular operation I used it as an iterator. This seemed
+easier than working out how all three rotations around the boat would change
+the coordinate pair. There are four positions possible in relation to the boat,
+per the confines of the puzzle, and with two coordinates these can be mapped
+with 1 and -1 for each of them. A 90 degree rotation simply swaps the coords
+and inverts one of them and can be applied successively for all
+other angles.
+
+A slight complication of the above is not being able to modify the coordinate
+list in place; though rather than a new variable I could have reversed the list
+then inverted or many other, equally as sound solutions.
+
+## Overall
+
+The addition of the waypoint caused less complication to today's puzzles than
+its suggestion at the boat instruction pitch meeting must have done in the
+fictional universe of Advent of Code. Still, I always find something rather
+satisfying in the use of mod to make rotations easy; I think it's the
+extensibility of the idea and a reminder that not too long ago, when first
+confronted with a rotation I was 'lost at sea' in terms of coding it.
