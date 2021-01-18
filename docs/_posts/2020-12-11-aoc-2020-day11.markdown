@@ -1,0 +1,236 @@
+---
+layout: post
+title:  "Advent of Code 2020 - Day 11: Seating System"
+date:   2020-12-11 
+categories: advent-of-code
+tags: advent-of-code advent-of-code-2020 python
+---
+
+Another Advent of Code staple is the 'Game of Life'-like puzzle and day 11 is
+just that. My solutions to these types of problems always feel somehow
+sluggish, as if they are holding on to too much information or lacking the
+momentum boost of memoisation.
+
+The dressing can be found on
+[the official page](https://adventofcode.com/2020/day/11) but here's the meat:
+
+### Part One
+
+{% highlight python %}
+
+with open ('inputs/day_11.txt', 'r') as f:
+    floorplan = [row.strip() for row in f.readlines()]
+
+num_rows = len(floorplan)
+num_cols = len(floorplan[0])
+floorplan_dict = {}
+for row in range(num_rows):
+    for col in range(num_cols):
+        floorplan_dict[(row, col)] = floorplan[row][col]
+
+floorplan_dict_copy = floorplan_dict.copy()
+
+while True:
+    new_states = {}
+    for coords, state in floorplan_dict.items():
+        if state == '.':
+            new_states[coords] = state
+            continue
+
+        adjacent = [(0, -1), (0, 1), (-1, 0), (1, 0),
+                    (-1, -1), (-1, 1), (1, 1), (1, -1)]
+        occupied = 0
+        for seat in adjacent:
+            new_coords = (coords[0] + seat[0], coords[1] + seat[1])
+            if floorplan_dict.get(new_coords, '.') == '#':
+                occupied += 1
+
+        if  occupied == 0 and state == 'L':
+            new_states[coords] = '#'
+        elif occupied >= 4 and state == '#':
+            new_states[coords] = 'L'
+        else:
+            new_states[coords] = state
+
+    if floorplan_dict == new_states:
+        break
+
+    floorplan_dict = new_states
+
+occupied = sum(1 for value in new_states.values() if value == '#')
+
+# Answer One
+print("Number of seats that end up occupied:", occupied)
+
+{% endhighlight %}
+
+The evolution of the initial state is comprehensively given within the puzzle
+and easily codified I always struggle with these aspects:
+
+### Best Way to Check Adjacent
+
+In this puzzle, adjacent meant both the cardinal and intercardinal neighbours
+so a maximum of eight to consider for each seat. My choice of data structure -
+a dictionary mapping a seat's coordinates to its value - means a simple call
+to this dictionary with each neighbour's coordinates returns the state of that
+object (be it floor, occupied seat or unoccupied seat). This, coupled with how
+the .get operation removes the complication of out of bound coordinates, makes
+me think that the dictionary is an adequate choice of structure and yet
+checking the neighbours feels somehow incorrect.
+
+When looking for the source of this unease, my focus tends to shift towards the
+list of tuples that represents all eight of the neighbouring coords. Something
+about this seems inelegant yet I'm loathed to lay the blame there. It is an
+intuitive representation of the adjacent coordinates in relation to the current
+and whilst I could have split the current coords into 'x' and 'y' variables and
+used those within the tuples there is little to no meaningful difference
+between the approaches:
+
+{% highlight python %}
+
+y, x = coords
+adjacent = [(y, x -1), (y, x + 1), (y - 1, x), (y + 1, x),
+            (y - 1, x - 1), (y - 1, x + 1), (y + 1, x + 1), (y + 1, x - 1)]
+
+{% endhighlight %}
+
+The latter makes the representation slightly more explicit (perhaps) so is
+something I might steer towards in the future. The problem then is, as far as I
+can tell, the data structure that seems like such a good fit... Let's explore
+this:
+
+The neighbour's coordinates never change, yet I recalculate them each and every
+loop. I could expand the dictionary entries to include a list of neighbouring
+coordinates, but I like to keep dictionary mappings as direct as possible
+having had experience of an incorrectly unpacked tuple causing difficult to
+diagnose problems. A named tuple would seem to address this perfectly but I am
+always hesitant to add imports despite this being a draw of Python as a
+language. I'm not saying this is a reasonable reticence to have, but I have it
+and with quick, daily puzzles like these my biases invariable come to the fore.
+A class would offer the same explicit calls to the information I want and
+provide more flexibility in regards to the at the time unknown part two.
+
+### The Irritation of Simultaneous State Updates
+
+Give me a iterable of updating states and an order they are updated in and
+I'll do this without hesitation - iterate via an index (for example) instead of
+the data structures inbuilt iteration - but when everything has to be updated
+at once things tend to go slightly awry. Not so much in terms of difficulty but
+in terms of how satisfied I am with my implementation.
+
+With this puzzle, as in many others that bare this constraint, I simply mirror
+the data structure I am iterating through and reassign it to the original
+variable at the end of each loop. I don't think this is wrong... but I don't
+like it. On a question like this, where you have to compare the previous round
+to the latest to see if the states have stabilised, it feels expensive to
+compare two dictionaries after each loop. 
+
+If I switched to a class, as proposed above, I could keep both the new and old
+states in memory for each entry along with an integer representing which
+'round' this instance was last involved with. For example, a neighbour that had
+already been processed this round would have its states like this:
+
+{% highlight python %}
+[previous, this_round]
+{% endhighlight %}
+
+Whereas, a neighbour yet to be calculated would have its state look like this:
+
+{% highlight python %}
+[two_rounds_ago, previous]
+{% endhighlight %}
+
+An variable within the class that tracked which round this information was
+updated via a simple integer would allow something like:
+
+{% highlight python %}
+
+if instance.round == round:
+    previous_state = instance.states[0]
+else:
+    previous_state = instance.states[1]
+
+{% endhighlight %}
+
+So concludes my thoughts on part one. I am writing these retrospectively, as
+time away from a project helps me evaluate it better, so expect these
+'mistakes' to be repeated throughout this years AoC. Anyway, on to...
+
+### How Much of The Information Do I Need Anyway
+
+As any kid jumping from one soft furnishing to another throughout the entirety
+of the house knows - the floor is pointless. I hold on to this entirely inert
+piece of information throughout both of today's puzzles for no real reason. I
+don't consider this a source of significant slow down, but it shows that the
+direct translation of a problem and its input into code without some prior
+consideration is a habit I need to unburden myself of.
+
+## Part Two
+
+Far less to say about part two which, as the code below shows, is largely a
+rehash of the first part with only one significant difference - the definition
+of adjacent has been expanded to mean the first seat, rather than the first
+thing, in those directions:
+
+{% highlight python %}
+
+floorplan_dict = floorplan_dict_copy
+while True:
+    new_states = {}
+    for coords, state in floorplan_dict.items():
+        if state == '.':
+            new_states[coords] = state
+            continue
+
+        adjacent = [(0, -1), (0, 1), (-1, 0), (1, 0),
+                    (-1, -1), (-1, 1), (1, 1), (1, -1)]
+
+        occupied = 0
+        for seat in adjacent:
+            new_coords = coords
+            while True:
+                new_coords = (new_coords[0] + seat[0], new_coords[1] + seat[1])
+                if new_coords[0] < 0 or new_coords[1] < 0:
+                    break
+                if new_coords[0] == num_rows or new_coords[1] == num_cols:
+                    break
+
+                adj_state = floorplan_dict.get(new_coords, '.')
+                if adj_state == 'L':
+                    break
+
+                if adj_state == '#':
+                    occupied += 1
+                    break
+
+        if occupied == 0 and state == 'L':
+            new_states[coords] = '#'
+        elif occupied >= 5 and state == '#':
+            new_states[coords] = 'L'
+        else:
+            new_states[coords] = state
+
+    if floorplan_dict == new_states:
+        break
+
+    floorplan_dict = new_states
+
+occupied = sum(1 for value in new_states.values() if value == '#')
+
+# Answer Two
+print("Number of seats that end up occupied:", occupied)
+
+{% endhighlight %}
+
+Even though I feel uneasy using it, this is where the use of the tuples for the
+adjacent coordinates comes in handy as I can simply redo this transformation
+until I land upon a seat. This is what I do in the new 'while True' loop with
+the various break conditions (i.e. find a seat or go out of bounds) in place.
+
+## Overall
+
+A fairly simple day of puzzles that I nonetheless felt dissatisfied with my
+approach for. I like the idea of using a class regardless of how bare it would
+be and recommend taking the extra time to print each stage of these dynamically
+updating, 'Game of Life'-esq problems as they are often rather beautiful to
+watch unfold.
