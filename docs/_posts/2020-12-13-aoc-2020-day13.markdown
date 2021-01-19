@@ -1,0 +1,114 @@
+---
+layout: post
+title:  "Advent of Code 2020 - Day 13: Shuttle Search"
+date:   2020-12-13 
+categories: advent-of-code
+tags: advent-of-code advent-of-code-2020 python
+---
+
+Typical... You wait 24 hours for an opportunity to earn a star during Advent of
+code and two come along at once. Day 13 was a short shuttle ride to two stars
+requiring an unstated but reasonable assumption and a little bit of dynamic
+programming.
+
+The shuttle schedule can be found on
+[the official page](https://adventofcode.com/2020/day/13) and my answer can be
+found below:
+
+### Part One
+
+{% highlight python %}
+
+with open ('inputs/day_13.txt', 'r') as f:
+    rows = [row.strip() for row in f.readlines()]
+
+early_time = int(rows[0])
+bus_ids = rows[1].split(',')
+
+shortest_wait = None
+for bus_id in [int(x) for x in bus_ids if x != 'x']:
+    difference = ((early_time // bus_id + 1) * bus_id) - early_time
+    if shortest_wait is None or difference < shortest_wait[0]:
+        shortest_wait = (difference, bus_id)
+
+# Answer One
+print("Product of bus ID and wait:", shortest_wait[0] * shortest_wait[1])
+
+{% endhighlight %}
+
+The import-phobia based decision to floor divide and add one (rather than use
+math.ceil) aside, I think this code largely stands on its own. For each bus ID
+work out the value of its multiples that is closest to the departure time
+and keep track of the shortest_wait and the bus_id responsible for it.
+
+One line that I often use but have not idea if it is the right thing to do is:
+
+{% highlight python %}
+
+if shortest_wait is None or difference < shortest_wait[0]:
+
+{% endhighlight %}
+
+This allows me to set the shortest_wait variable to 'None' as opposed to
+a really large number. I like how it reads, as pre-loop the shortest_wait is
+indeed None (unknown would be more accurate I suppose) but it does make the
+'if statement' more verbose than necessary on all but the first iterable.
+I could have set it to the first value pre-loop, but if some error means that
+the variable is never assigned it would be a lot harder to detect than if the
+erroneous code spits out "None".
+
+## Part Two
+
+Sometimes, the part two seems obvious from the setup of part one but today
+wasn't one of those for me:
+
+> What is the earliest timestamp such that all of the listed bus IDs depart at
+offsets matching their position in the list?
+
+With a warning that the answer will be over 100000000000000, I sat back,
+struggled and then realised there was a vital, unwritten but hinted at
+assumption I could make that would make this second star tractable... all
+of the bus ids are prime numbers! The answer is then as short and sweet as:
+
+{% highlight python %}
+
+time = 1
+interval = 1
+for index, bus in enumerate([int(x) if x != 'x' else 1 for x in bus_ids]):
+    while True:
+        if (time + index) % bus == 0:
+            interval *= bus
+            break
+        time += interval
+
+# Answer Two
+print("Earliest time where bus departure offsets match their indices:", time)
+
+{% endhighlight %}
+
+This is another example of dynamic programming
+[similar to day 10](https://findlayian.com/advent-of-code/2020/12/10/aoc-2020-day10.html).
+Rather than calculating all possible bus timings by going minute by minute I've
+broken down the challenge into one ID at a time steps. Here's the key points of
+how it works:
+
+- As the numbers are all prime, once you have two ID's that are next to each
+other in the 'schedule' appearing the correct time apart you know that this
+timing will cycle in that interval only.
+
+- Keeping track of this interval allows the maximum possible time jumps between
+checking whether or not the timing for the next target bus_id is correct. This
+interval is the product of the latest timestamp where a target bus_id was
+aligned correctly and the current bus_id target.
+
+Essentially, you get the first two buses to line up and use that cycle to
+quickly align the next and so on and so forth until the second star is
+within your digital hands.
+
+## Overall
+
+I enjoyed the dynamic part two as being able to break down an 'impossible'
+problem and bring it to bear is incredibly satisfying. More of my time was
+spent on today than perhaps it should have been as the prime nature of the bus
+IDs wasn't explicitly stated but this is a large part of why the second star
+had the impact that it did so, on the whole, I appreciate the omission.
