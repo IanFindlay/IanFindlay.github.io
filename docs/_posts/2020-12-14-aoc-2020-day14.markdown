@@ -1,0 +1,184 @@
+---
+layout: post
+title:  "Advent of Code 2020 - Day 14: Docking Data"
+date:   2020-12-14 
+categories: advent-of-code
+tags: advent-of-code advent-of-code-2020 python
+---
+
+A bitmask is something I've seen others reach for to solve AoC in the past but
+I never have; today's puzzle hasn't really changed that but it's always nice to
+be reminded of what you've neglected to learn. Somewhat fiddly but certainly
+bearable, day 14 offers a nice introduction to the back half of this year's
+calendar.
+
+The technical details can be found on
+[the official page](https://adventofcode.com/2020/day/14), my take on it was
+as follows:
+
+### Part One
+
+It was less the fact that the input has two distinct formats - i.e. one for
+setting the mask and another for giving an instruction - and more to do with
+the range of integers in the instruction lines that led to my import of the
+re (regex) module. I could have split these lines twice:
+
+- Let's take this line as an example input: mem[7] = 101
+
+- Split once and you're left with the following list: ['mem[7]', '=', '101'].
+This gives you the value albeit needing conversion from a string.
+
+- Splitting the first of these by "[" would mean that the memory address
+was [:-1] - the -1 accounts for the closing square bracket.
+
+This is a fairly concise way to parse the input and would have saved the import
+and potential complications of relying on compiling the regex you see below but
+to me the underlying structure of the input is highlighted better in my answer:
+
+{% highlight python %}
+
+import re
+
+
+with open ('inputs/day_14.txt', 'r') as f:
+    rows = [row.strip() for row in f.readlines()]
+
+instructions = []
+instruction_regex = re.compile('mem\[(\d*)\]\s=\s(\d*)')
+for row in rows:
+    if row.startswith('mask'):
+        instructions.append(row.split()[2])
+    else:
+        mem, value = instruction_regex.findall(row)[0]
+        instructions.append((mem, value))
+
+memory = {}
+for instruction in instructions:
+    if type(instruction) is str:
+        mask = instruction
+    else:
+        mem, value = instruction
+        value = format(int(value), '036b')
+        masked_value = ''
+        for index, bit in enumerate(mask):
+            if bit == 'X':
+                masked_value += value[index]
+            else:
+                masked_value += bit
+
+        memory[mem] = int(masked_value, 2)
+
+# Answer One
+print("Sum of all values left in memory after initialisation:",
+      sum(memory.values()))
+
+{% endhighlight %}
+
+Once parsed, I simply iterate through the instructions differentiating the
+setting of a mask by the fact it's a string. I use the format function to
+convert the integers into 36 bit binary string and move along the mask bit by
+bit applying it as described in the puzzle.
+
+One star in hand, I couldn't help but feel that the lack of binary operations
+in my solution made this part somewhat questionable opening me up for trouble
+in...
+
+## Part Two
+
+That the bitmask overwrote the values in part one was almost certainly going to
+change, so I was braced for that, but the X's indicating a floating bit and
+being able to take on any value hit me hard. Immediately, I was concerned with
+how much information I would have to hold in memory and how slow my initial,
+unoptimised code would take to error out or not.
+
+The saving grace of this puzzle if that it is the memory addresses that are
+affected by the floats not the value to be written. This means, instead of
+having to store numerous possible values for each address I merely had to
+write to numerous addresses.
+
+As we are working in binary, there are only two possible values for an 'X'
+meaning the number of addresses that get written to is 2^n - where n is the
+number of 'X's in the post-mask address. It doesn't take long for these numbers
+to get large and calculating each address efficiently became the crux of this
+second star.
+
+As much as I try to avoid imports, the permutations and combinations of the
+itertools module were calling out to me. After some thought, experimentation and
+[reading of docs](https://docs.python.org/3/library/itertools.html) I realised
+it was actually the product function that would unmask the solution.
+
+### The Difference Between Combinations, Permutations and Products
+
+Itertools provides two types of combinations, one with replacement and one
+without, but the general principle is the same: all the unique ways elements
+can be arranged taking sorting into account i.e. 'AB' will never be combined
+to make 'BA'.
+
+Permutations are essentially combinations without the restriction on the
+sorting of the values. They are, however, restricted in that none of the
+elements will be repeated. This is where the Cartesian product comes in to play
+and does much of the heavy lifting of this puzzle for me.
+
+The product function will, if given an appropriate repeat argument, come up
+with every possible post-mask address be it evaluating every 'X' as a 0, a '1'
+or any possible variation thereof. To code this manually would have certainly
+been possible, I in fact started doing so until the siren call of itertools
+grew too strong, but I wouldn't have got near the efficiency of this function.
+
+So, here's the solution as it currently stands with a summary of the day just
+below it:
+
+{% highlight python %}
+
+from itertools import product
+import re
+
+memory = {}
+for instruction in instructions:
+    if type(instruction) is str:
+        mask = instruction
+    else:
+        mem, value = instruction
+        mem = format(int(mem), '036b')
+        masked_mem = ''
+        for index, bit in enumerate(mask):
+            if bit == '0':
+                masked_mem += mem[index]
+            else:
+                masked_mem += bit
+
+        x_count = masked_mem.count('X')
+        for floats in product(('0', '1'), repeat=x_count):
+            float_mem = ''
+            float_index = 0
+            for bit in masked_mem:
+                if bit == 'X':
+                    float_mem += floats[float_index]
+                    float_index += 1
+                else:
+                    float_mem += bit
+
+            memory[int(float_mem, 2)] = int(value)
+
+# Answer Two
+print("Sum of all values left in memory after Version 2 initialisation:",
+      sum(memory.values()))
+{% endhighlight %}
+
+
+## Overall
+
+Even with the considerable help of the imported product function, this solution
+is slower than I usually allow my answers to be. Converting the integers to
+36bit binary that doesn't start with '0b' was a new trick for me as I usually
+just remove this post conversion. It could do with a refactor but more
+importantly it could do with a re-evaluation. I'm not entirely sure that using
+the binary operations of Python would solve all of my sins on this one but I'm
+fairly sure it would have helped.
+
+At the end of the day, I feel like the import earned the second star and that
+doesn't sit quite right with me. Don't get me wrong, imports are part of the
+language and perfectly valid; knowing what you need, where to get it and how
+to work it into your code is a skill in an of itself but I can't help but feel
+I've missed the mark with this one. Lacking some critical insight or float
+related knowledge. One to come back to perhaps.
