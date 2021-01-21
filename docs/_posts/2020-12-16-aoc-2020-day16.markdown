@@ -1,0 +1,306 @@
+---
+layout: post
+title:  "Advent of Code 2020 - Day 16: Ticket Translation"
+date:   2020-12-16 
+categories: advent-of-code
+tags: advent-of-code advent-of-code-2020 python
+---
+
+Thankfully, my error rate on today's task was low enough to
+allow for a refactor. Functions came in to play for the first time in a few
+days allowing me to translate the two stars with relative ease.  
+
+Check the full ticket at
+[the official page](https://adventofcode.com/2020/day/16) then come aboard my
+solution:
+
+### Part One - Much to Parse About Scanning
+
+With three distinct pieces of information contained within one input - the
+ranges of each category, the details of your ticket and the details of the
+nearby tickets - there's parsing a plenty. Splitting the input by a blank
+line ('\n\n') get's you your three separate sections and from there the
+processing of them is not much harder.
+
+I create a dictionary of all of the rules (the ranges of valid numbers of each
+category) and then ran the numbers through them to check their validity as seen
+below:
+
+{% highlight python %}
+
+def number_valid(rules_dict: dict, number: int) -> bool:
+    """Run number against dictionary of rules and return if valid or not."""
+    for range_tuples in rules_dict.values():
+        for num_range in range_tuples:
+            lower, upper = num_range
+            if number >= lower and number <= upper:
+                return True
+    return False
+
+
+with open('input.txt', 'r') as f:
+    rules, my_ticket, nearby = [row.strip() for row in f.read().split('\n\n')]
+
+rules_dict = {}
+for rule in rules.split('\n'):
+    field, num_ranges = rule.split(':')
+    num_ranges = [num_range.strip() for num_range in num_ranges.split('or')]
+    range_tuples = []
+    for num_range in num_ranges:
+        lower, upper = num_range.split('-')
+        range_tuples.append((int(lower), int(upper)))
+    rules_dict[field] = range_tuples
+
+numbers = [[int(x) for x in row.split(',')] for row in nearby.split('\n')[1:]]
+invalid = 0
+for number_row in numbers:
+    for number in number_row:
+        if not number_valid(rules_dict, number):
+            invalid += number
+
+# Answer One
+print("Ticket scanning error rate:", invalid)
+
+{% endhighlight %}
+
+There isn't much here to discuss. I opted for various splits as opposed to my
+old pal regex here for the sake of variety more than anything else, and whilst
+I hold on to more information than strictly required it is very much in
+anticiaption of...
+
+## Part Two - Expected Yet Exciting
+
+As I am sure everyone was anticipating, part two asks you to:
+
+> Identify which field is which.
+
+My first pass at this star came together quickly but is, as you'll see, crying
+out for a refactor - which came later in the day and comes later in this post.
+The basic idea was this:
+
+- Make a list of all of the valid tickets
+
+- Set up list of sets corresponding to the N possible categories
+
+- Go through the valid tickets keeping track for each index of the field whose
+rules all numbers in that position have so far passed.
+
+- If only one field is still in contention for that index then assign it to
+that index. Adding the value to a set of assigned_fields.
+
+- If there are more than one possible fields for that index, take the
+difference of the potential_fields and already assigned_fields and set the
+index to that.
+
+- Eventually, the length of the assigned_fields will be equal to the number of
+fields on the ticket and the product of the departure fields can be calculated.
+
+And this is how it looked when the second star twinkled onto my calendar.
+
+{% highlight python %}
+
+def number_valid(rules_dict: dict, number: int) -> bool:
+    """Run number against dictionary of rules and return if valid or not."""
+    for range_tuples in rules_dict.values():
+        for num_range in range_tuples:
+            lower, upper = num_range
+            if number >= lower and number <= upper:
+                return True
+    return False
+
+
+def potential_fields(rules_dict: dict, number: int) -> set:
+    """."""
+    valid_fields = set()
+    for field, range_tuples in rules_dict.items():
+        for num_range in range_tuples:
+            lower, upper = num_range
+            if number >= lower and number <= upper:
+                valid_fields.add(field)
+
+    return valid_fields
+
+
+valid_tickets = []
+for number_row in numbers:
+    ticked_valid = True
+    for number in number_row:
+        if not number_valid(rules_dict, number):
+            ticked_valid = False
+            break
+    if ticked_valid:
+        valid_tickets.append(number_row)
+
+my_fields = [set()] * len(rules_dict)
+assigned_fields = set()
+while True:
+    for number_row in valid_tickets:
+        for index, number in enumerate(number_row):
+            valid_fields = potential_fields(rules_dict, number)
+            if len(my_fields[index]) != 1:
+                valid_fields = valid_fields.difference(assigned_fields)
+            if not my_fields[index]:
+                my_fields[index] = valid_fields
+            else:
+                my_fields[index] = my_fields[index].intersection(valid_fields)
+
+            if len(my_fields[index]) == 1:
+                assigned_fields.update(my_fields[index])
+    if len(assigned_fields) == len(my_fields):
+        break
+
+
+my_fields = [list(x)[0] for x in my_fields]
+my_ticket = [[int(x) for x in row.split(',')] for row in my_ticket.split('\n')[1:]][0]
+departure_product = 1
+for index, field in enumerate(my_fields):
+    if field.startswith('departure'):
+        departure_product *= my_ticket[index]
+
+# Answer Two
+print("Product of the six 'departure' field values on my ticket:",
+      departure_product)
+
+{% endhighlight %}
+
+Something you may notice, and something that I haven't fully decided upon
+myself, is the use of the named set operations as opposed to the more concise
+symbols. I like how explicit the (for example) ".intersection" makes the code
+but the line lengths can get questionable. I wouldn't expect absolute
+consistency from me on this (or any) front but that's my current decision and
+the reasoning behind it.
+
+Another thing of note is an annoyance that the refactor below failed to address:
+Sets are incredible for quickly checking membership and combining with other
+sets but damn annoying to retrieve specific data from. Having to convert each
+item of my_fields into a list in order to extract the sole member of a set
+can't be right... pop() would have worked in this instance, as the iterable
+that is being iterated over wouldn't be the one that changed size during the
+list comprehension, but I didn't make that distinction at the time and it still
+seems a little off to me. Regardless, onto the...
+
+## Refactor - Today's Tweaks
+
+Implementation wise nothing substantial has changed this was more an exercise
+in combining both parts where they overlap and adding some docstrings. I've
+replaced some of the len checks with counters and relied upon the double break
+technique to get out of the while True loop with a new all_assigned boolean.
+I've also fixed the ticked/ticket typo that you may or may not have noticed -
+both names kind of work but only the latter was intended.
+
+{% highlight python %}
+
+def number_valid(rules_dict: dict, number: int) -> bool:
+    """Run number against dictionary of rules and return if valid or not."""
+    for range_tuples in rules_dict.values():
+        for num_range in range_tuples:
+            lower, upper = num_range
+            if number >= lower and number <= upper:
+                return True
+    return False
+
+
+def potential_fields(rules_dict: dict, number: int) -> set:
+    """Check number against each field and return set of valid ones."""
+    valid_fields = set()
+    for field, range_tuples in rules_dict.items():
+        for num_range in range_tuples:
+            lower, upper = num_range
+            if number >= lower and number <= upper:
+                valid_fields.add(field)
+
+    return valid_fields
+
+
+with open('input.txt', 'r') as f:
+    rules, my_ticket, nearby = [row.strip() for row in f.read().split('\n\n')]
+
+# Parse Field Rules
+rules_dict = {}
+for rule in rules.split('\n'):
+    field, num_ranges = rule.split(':')
+    num_ranges = [num_range.strip() for num_range in num_ranges.split('or')]
+    range_tuples = []
+    for num_range in num_ranges:
+        lower, upper = num_range.split('-')
+        range_tuples.append((int(lower), int(upper)))
+    rules_dict[field] = range_tuples
+
+# Parse Nearby Tickets
+numbers = [[int(x) for x in row.split(',')] for row in nearby.split('\n')[1:]]
+
+invalid = 0
+valid_tickets = []
+for number_row in numbers:
+    ticket_valid = True
+    for number in number_row:
+        if not number_valid(rules_dict, number):
+            invalid += number
+            ticket_valid = False
+    if ticket_valid:
+        valid_tickets.append(number_row)
+
+# Answer One
+print("Ticket scanning error rate:", invalid)
+
+num_fields = len(rules_dict)
+my_fields = [set()] * num_fields
+assigned_fields = set()
+num_assigned = 0
+all_assigned = False
+while True:
+    for number_row in valid_tickets:
+        for index, number in enumerate(number_row):
+            valid_fields = potential_fields(rules_dict, number)
+            prev_fields = my_fields[index]
+            if len(prev_fields) != 1:
+                valid_fields = valid_fields.difference(assigned_fields)
+            if not prev_fields:
+                prev_fields = valid_fields
+            else:
+                prev_fields = prev_fields.intersection(valid_fields)
+
+            my_fields[index] = prev_fields
+
+            if len(prev_fields) == 1:
+                field = list(prev_fields).pop()
+                if field not in assigned_fields:
+                    assigned_fields.update(prev_fields)
+                    num_assigned += 1
+
+            if num_assigned == num_fields:
+                all_assigned = True
+                break
+
+    if all_assigned:
+        break
+
+my_fields = [list(x)[0] for x in my_fields]
+my_ticket = [[int(x) for x in row.split(',')]
+              for row in my_ticket.split('\n')[1:]][0]
+
+departure_product = 1
+for index, field in enumerate(my_fields):
+    if field.startswith('departure'):
+        departure_product *= my_ticket[index]
+
+# Answer Two
+print("Product of the six 'departure' field values on my ticket:",
+      departure_product)
+
+{% endhighlight %}
+
+## Overall
+
+Around 100 lines of code after a refactor isn't bad for something with so many
+loops and a couple of docstring-laden functions. The predictability of part two
+made this feel like one cohesive question with the first part laying the
+groundwork for the more complicated finale. There was a nice touch with the
+narrative behind today as well: the invalid tickets being an error with your
+fictional scanning device rather than some problem with the ticketing system
+itself added a surprising amount of verisimilitude; this isn't important for
+AoC of course but I appreciated it nonetheless.
+
+16 days and 32 stars in to this years advent and I'm wondering if the
+difficulty will climb rapidly from here or if the summits of previous years
+are unlikely to be seen.
