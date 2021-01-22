@@ -1,0 +1,236 @@
+---
+layout: post
+title:  "Advent of Code 2020 - Day 17: Conway Cubes"
+date:   2020-12-17 
+categories: advent-of-code
+tags: advent-of-code advent-of-code-2020 python
+---
+
+We've had a few Conway-esque questions in AoC history, and even in this year's
+challenges so far, but this is the most direct expansion of the idea yet. An
+enjoyable pair of problems that didn't take long but, much like life itself,
+certainly wasn't without its difficulties.
+
+Find all that this question's life has to offer on
+[the official page](https://adventofcode.com/2020/day/17) then read the
+following post-mortem:
+
+### Part One - Infinite Sure... But In What Dimension
+
+The infinite is something that has baffled many a mind and today it was
+(thankfully only temporarily) my turn. Based on past experience of AoC problems
+expanding into infinity via the Z-axis, I assumed this was once again the case
+and banged my head against wrong answer after wrong answer before realising the
+issue with my implementation.
+
+Once identified the extension into all dimensions was relatively
+straightforward but some of my decisions are, to my aesthetic tastes,
+revolting:
+
+{% highlight python %}
+
+def cycle_cubes(active_cubes: set) -> set:
+    """."""
+    lowest_x = min(active_cubes, key=lambda x: x[0])[0]
+    lowest_y = min(active_cubes, key=lambda x: x[1])[1]
+    lowest_z = min(active_cubes, key=lambda x: x[2])[2]
+    highest_x = max(active_cubes, key=lambda x: x[0])[0]
+    highest_y = max(active_cubes, key=lambda x: x[1])[1]
+    highest_z = max(active_cubes, key=lambda x: x[2])[2]
+
+    new_active_cubes = set()
+    for x in range(lowest_x - 1, highest_x + 2):
+        for y in range(lowest_y - 1, highest_y + 2):
+            for z in range(lowest_z -1, highest_z + 2):
+                coords = (x, y, z)
+                neighbours = neighbouring_coords(coords)
+                active = 0
+                for neighbour in neighbours:
+                    if neighbour in active_cubes:
+                        active += 1
+
+                if coords in active_cubes and active in (2, 3):
+                    new_active_cubes.add(coords)
+
+                else:
+                    if active == 3:
+                        new_active_cubes.add(coords)
+
+    return new_active_cubes
+
+
+def neighbouring_coords(coords: tuple) -> list:
+    """."""
+    neighbours = []
+    for x in range(-1, 2):
+        new_x = coords[0] + x
+
+        for y in range(-1, 2):
+            new_y = coords[1] + y
+
+            for z in range(-1, 2):
+                new_coords = (new_x, new_y, coords[2] + z)
+                if new_coords != coords:
+                    neighbours.append(new_coords)
+
+    return neighbours
+
+
+with open('inputs/2020_17.txt', 'r') as f:
+    rows = [[char for char in row.strip()] for row in f.readlines()]
+
+active_cubes = set()
+for x, row in enumerate(rows):
+    for y, state in enumerate(row):
+        if state == '#':
+            active_cubes.add((x, y, 0))
+
+for cycle in range(6):
+    active_cubes = cycle_cubes(active_cubes)
+
+# Answer One
+print("Cubes left in active state after 6th cycle:", len(active_cubes))
+
+{% endhighlight %}
+
+Ignore the missing docstrings for now and focus on the first function:
+cycle_cubes. My decision to only retain information about the active_cubes is
+something I stand behind, as them and their influence on neighbouring cubes is
+the only thing worth the memory and it makes the final count trivial, but the
+lambda-laden min and max lines are undeniably messy.
+
+Worse than this though is a flaw that pervades more of my answers than I'd
+like to admit: the recalculation of the neighbouring coordinates each and every
+cycle. This is particularly offensive in this case of an infinite grid with
+26 neighbours per cube. An as yet unwritten improvement that's worming it's way
+through my brain looks speculatively like this:
+
+I need a data structure that can hold information - the coordinates of the
+neighbours - so why not utilise the one and done calculation offered by a
+class? Even better... sod the coordinates and store direct reference to the
+neighbouring instances if memory allows for it. A boolean class variable could
+be initialised in order to quickly differentiate between the active and
+non-active cubes.
+
+This refactor is yet to come and, being honest, may never see the light of day
+but we have a star and are stretching off into...
+
+## Part Two - A New Axis But No New Problems
+
+Sometimes the rules of activation change, other times the number of cycles is
+pushed to efficiency testing limits but this time:
+
+> Do the same thing but with four dimensions as opposed to three.
+
+Part two can damn near go without comment; a new part_two argument added to my
+functions with the associated branches and the second puzzle is solved:
+
+{% highlight python %}
+
+def cycle_cubes(active_cubes: set, part_two=False) -> set:
+    """."""
+    lowest_x = min(active_cubes, key=lambda x: x[0])[0]
+    lowest_y = min(active_cubes, key=lambda x: x[1])[1]
+    lowest_z = min(active_cubes, key=lambda x: x[2])[2]
+    highest_x = max(active_cubes, key=lambda x: x[0])[0]
+    highest_y = max(active_cubes, key=lambda x: x[1])[1]
+    highest_z = max(active_cubes, key=lambda x: x[2])[2]
+
+    if part_two:
+        lowest_w = min(active_cubes, key=lambda x: x[3])[3]
+        highest_w = max(active_cubes, key=lambda x: x[3])[3]
+
+    new_active_cubes = set()
+    for x in range(lowest_x - 1, highest_x + 2):
+        for y in range(lowest_y - 1, highest_y + 2):
+            for z in range(lowest_z -1, highest_z + 2):
+                if not part_two:
+                    if new_state((x, y, z), active_cubes):
+                        new_active_cubes.add((x, y, z))
+                else:
+                    for w in range(lowest_w - 1, highest_w + 2):
+                        if new_state((x, y, z, w), active_cubes, True):
+                            new_active_cubes.add((x, y, z, w))
+
+    return new_active_cubes
+
+
+def new_state(coords, active_cubes: set, part_two=False) -> bool:
+    """."""
+    neighbours = neighbouring_coords(coords, part_two)
+    active = 0
+    for neighbour in neighbours:
+        if neighbour in active_cubes:
+            active += 1
+
+    if coords in active_cubes and active in (2, 3):
+        return True
+
+    else:
+        if active == 3:
+            return True
+
+    return False
+
+
+def neighbouring_coords(coords: tuple, part_two=False) -> list:
+    """."""
+    neighbours = []
+    for x in range(-1, 2):
+        new_x = coords[0] + x
+
+        for y in range(-1, 2):
+            new_y = coords[1] + y
+
+            for z in range(-1, 2):
+                new_z = coords[2] + z
+                if not part_two:
+                    new_coords = (new_x, new_y, new_z)
+                    if new_coords != coords:
+                        neighbours.append(new_coords)
+                else:
+                    for w in range(-1, 2):
+                        new_coords = (new_x, new_y, new_z, coords[3] + w)
+
+                        if new_coords != coords:
+                            neighbours.append(new_coords)
+
+    return neighbours
+
+
+with open('inputs/2020_17.txt', 'r') as f:
+    rows = [[char for char in row.strip()] for row in f.readlines()]
+
+active_cubes = set()
+for x, row in enumerate(rows):
+    for y, state in enumerate(row):
+        if state == '#':
+            active_cubes.add((x, y, 0))
+
+for cycle in range(6):
+    active_cubes = cycle_cubes(active_cubes)
+
+# Answer One
+print("Cubes left in active state after 6th cycle:", len(active_cubes))
+
+active_cubes = set()
+for x, row in enumerate(rows):
+    for y, state in enumerate(row):
+        if state == '#':
+            active_cubes.add((x, y, 0, 0))
+
+for cycle in range(6):
+    active_cubes = cycle_cubes(active_cubes, part_two=True)
+
+# Answer Two
+print("Cubes left in active state after 6th cycle (four dimensions):",
+      len(active_cubes))
+
+{% endhighlight %}
+
+## Overall
+
+One of the more direct extensions on the Conway theme and perhaps my favourite.
+My code may not look as attractive as I would have liked but who amongst us are
+perfect? Actual docstrings could have put some lipstick on this pig but their
+absence indicates that the Conway Cubes may yet be reborn with a refactor.
