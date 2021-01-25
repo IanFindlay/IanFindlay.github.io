@@ -1,0 +1,183 @@
+---
+layout: post
+title:  "Advent of Code 2020 - Day 18: Operation Order"
+date:   2020-12-18 
+categories: advent-of-code
+tags: advent-of-code advent-of-code-2020 python
+---
+
+School is back in session for day 18 and I emerge from it with mixed results.
+My success in obtaining stars was almost immediately followed by a sense that
+I had written the right essay but with atrocious spelling and grammar.
+
+For the full lesson head on over to
+[the official page](https://adventofcode.com/2020/day/18). My homework is
+below - you can copy it if you like:
+
+### Part One - It's Maths Jim but Not As We Know It
+
+The brackets immediately made me think of recursion and, due to the left to
+right operation order, this is the crux of part one. My original intention was
+to simply move along each line evaluating the sum as I went by dipping into
+a lower level of evaluation each time brackets were encountered. This is still
+the code I've written in my head, the hours spent failing to get it to work and
+the final acquiescing to creation of the Frankenstein's monster you see below
+never occurred, but the reality is that the idea is solid but my skills on the
+day were not.
+
+So, unable to parse as I go I split the parsing and evaluating up and was
+finally able to do_maths with the following code:
+
+{% highlight python %}
+
+def do_maths(maths: list) -> int:
+    """."""
+    num_1 = None
+    num_2 = None
+    operation = None
+    bracketed_start = None
+    bracketed_end = None
+    bracket_depth = 0
+    for index, char in enumerate(maths):
+
+        if char == '+':
+            if not bracketed_start:
+                operation = '+'
+        elif char == '*':
+            if not bracketed_start:
+                operation = '*'
+
+        elif char == '(':
+            if not bracketed_start:
+                bracketed_start = index + 1
+            else:
+                bracket_depth += 1
+        elif char == ')':
+            if bracketed_start and bracket_depth == 0:
+                bracketed_end = index
+                result = do_maths(maths[bracketed_start:bracketed_end])
+                if not num_1:
+                    num_1 = result
+                else:
+                    num_2 = result
+                bracketed_start = bracket_end = None
+            else:
+                bracket_depth -= 1
+
+        elif not bracketed_start:
+            if not num_1:
+                num_1 = int(char)
+            else:
+                num_2 = int(char)
+
+        if num_1 and num_2:
+            if operation == '+':
+                num_1 = num_1 + num_2
+                num_2 = None
+            else:
+                num_1 = num_1 * num_2
+                num_2 = None
+
+    return num_1
+
+
+with open('inputs/2020_18.txt', 'r') as f:
+    rows = [row.split() for row in f.readlines()]
+
+parsed_rows = []
+for row in rows:
+    parsed_row = []
+    for item in row:
+        if item.startswith('('):
+            for index, char in enumerate(item):
+                if char == '(':
+                    parsed_row.append(char)
+                else:
+                    parsed_row.extend(item[index:])
+
+        elif item.endswith(')'):
+            adjacent_item = ''
+            for char in item:
+                if char == ')':
+                    if adjacent_item:
+                        parsed_row.append(adjacent_item)
+                        adjacent_item = ''
+                    parsed_row.append(char)
+                else:
+                    adjacent_item += char
+
+        else:
+            parsed_row.append(item)
+
+    parsed_rows.append(parsed_row)
+
+rows = parsed_rows
+total = 0
+for row in rows:
+    result = do_maths(row)
+    total += result
+
+# Answer One
+print("Sum of the lines' values:", total)
+
+{% endhighlight %}
+
+Separating each line into its component parts took a little bit more work than
+a simple splitting by space as the brackets are flush to their adjacent
+integers. That these integers can be any length adds to this complication and
+the lack of cleanliness in the code is indicative of the iterative,
+mistake-laden process I went through to reach working code.
+
+do_maths is the functions name and that is (roughly) what it does. It is a
+mocking shadow of the 'evaluate-as-I-go' approach I wanted to take that
+iterates through the parsed_row and delves into bracketed sums via recursion.
+The main things of note are:
+
+-  The number variables: num_1, num_2 (the lesser-known Dr Seuss creations)
+keep track of where we are in terms of the current calculation. When both of
+these variables are assigned to values other than 'None' the result is
+calculated with the operator variable indicating the method.
+
+- The result is stored as num_1: and this, ultimately, is what is returned at
+the end of the iteration.
+
+- Enumeration is used as part of the iteration: This is the perhaps inelegant
+solution to the problem of sending the right span of information to the
+recursive call. I could have kept this as a separate list but storing two
+integers seemed kinder to my computer's memory.
+
+- Bracket depth: Keeps track of what depth of bracketing we are currently
+processing
+
+This is the first post-mortem that felt almost as sombre as one. I was glad to
+get the star and a little apprehensive of what was to come in...
+
+## Part Two - Advanced Maths... Don't Mind If I Do
+
+
+{% highlight python %}
+
+rows = parsed_rows.copy()
+
+total = 0
+for row in rows:
+    mod_row = ['(']
+    for item in row:
+        if item in ('(', ')'):
+            mod_row.extend([item, item])
+        elif item == '*':
+            mod_row.extend([')', '*', '('])
+        else:
+            mod_row.append(item)
+
+    mod_row.append(')')
+    result = do_maths(mod_row)
+    total += result
+
+# Answer Two
+print("Sum of the lines' values after new rules:", total)
+
+{% endhighlight %}
+
+## Overall
+
