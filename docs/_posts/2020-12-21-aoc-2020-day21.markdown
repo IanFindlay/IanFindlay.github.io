@@ -12,9 +12,9 @@ are given a simple but satisfying snack that seemed somewhat familiar.
 
 For all of the ingredients to this one take a look at
 [the official page](https://adventofcode.com/2020/day/21). As for this post,
-let's move on from the entrée and get into the first course.
+let's move on from the entrée and get into the main course.
 
-### Part One - Ambiguity is Not What I Ordered
+### Part One - Ambiguity Is Not What I Ordered
 
 The key detail for part one is that whilst the allergens may not always be
 listed they are always associated with only one ingredient. This means that,
@@ -95,7 +95,7 @@ A quick part one that left me with each allergen paired with its ingredient
 and, unknown to me at the time, set me up for an almost insultingly trivial...
 
 
-## Part Two - A Pre-emptive Solve
+## Part Two - A Pre-Emptive Solve
 
 Punishment is often meted out in this section but today the ruler missed my
 knuckles by a mile. Having already solved and stored the associations
@@ -106,8 +106,8 @@ to complete:
 
 Those who found some other way to work out the non-allergenic ingredients or
 failed to go the extra step of associating allergen with ingredient may have
-sighed at this one but, by the time they had finished, I was already holding
-the second star of the day with the following code:
+sighed at this one but by the time they had finished I was already holding
+the second star of the day with the following:
 
 {% highlight python %}
 
