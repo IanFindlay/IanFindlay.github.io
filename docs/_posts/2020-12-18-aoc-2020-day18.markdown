@@ -154,6 +154,19 @@ get the star and a little apprehensive of what was to come in...
 
 ## Part Two - Advanced Maths... Don't Mind If I Do
 
+For over fifty minutes I feared that this would be my first AoC failure of this
+year; then inspiration struck and within five minutes I had another star
+twinkling within my sweated fingers.
+
+The puzzle can be reduced to:
+
+> Multiplication comes after addition in terms of operation order
+
+I was concerned with making my parsing even more complicated or perhaps having
+to rig a system similar to the bracket_depth one above. Many failed attempts
+later amidst an air polluted with various swear words I finally saw
+the parallels between the original problem, where brackets were at the top of
+the operation order, and this:
 
 {% highlight python %}
 
@@ -179,5 +192,15 @@ print("Sum of the lines' values after new rules:", total)
 
 {% endhighlight %}
 
+Essentially, I realised that I could modify the parsed_rows to account for this
+new operation order and run it through an unchanged do_maths function. This
+modification took a little bit of tinkering but boils down to excluding the
+multiplication from additional bracketing.
+
 ## Overall
 
+A trying but interesting day. The towel was almost thrown for part two and
+other responsibilities of the day were thrown to the wayside in its place. Had
+this been a previous year where I'd already be a star or two off a perfect test
+result, I might not have persevered and been rewarded with that final, crucial
+insight.
