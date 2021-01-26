@@ -79,3 +79,161 @@ index error if referenced directly, the splice will simply include as much of
 the desired range as it can without raising an error. This allowed me to take
 the hypothetical, three cup splice, and add cups from the beginning of the list
 until the removed_three list has the length of three.
+
+Star securely in hand we move with only minor trepidation on to...
+
+## Part Two - Not A Significant Challenge Yet Some Significant Changes
+
+Errors in translation lead to the classic tactic of copy and paste, make it
+more efficient and hope to hell it works as you realise that:
+
+> There are actually one million cups and, not only that, the crab is going
+to make ten million moves.
+
+The rules are the same but the scale is bigger to the degree to where I flirted
+with the fear there would be some mathematical trick underlying these
+transformations; if there is, I still haven't discovered it as I changed my arm
+with a more efficient version of what came before being enough and thankfully
+it was.
+
+Before delving into the main hunk of code here's a quick modification I made to
+the input parsing: cups has become arranged_cups simply so the cups variable
+can be a copy of it for both part one and part two:
+
+{% highlight python %}
+
+with open('inputs/2020_23.txt') as f:
+    cups = [int(x) for x in f.read().strip()]
+    arranged_cups = [int(x) for x in f.read().strip()]
+    cups = arranged_cups.copy()
+
+{% endhighlight %}
+
+So, the main part of part two is below with a discussion of the main changes
+following it:
+
+{% highlight python %}
+
+cups = {}
+for index, cup in enumerate(arranged_cups[:-1]):
+    cups[cup] = arranged_cups[index + 1]
+cups[arranged_cups[-1]] = max(cups) + 1
+for i in range(max(cups) + 1, 1000000):
+    cups[i] = i + 1
+cups[1000000] = arranged_cups[0]
+
+current_cup = arranged_cups[0]
+for _ in range(10000000):
+    removed_three = []
+    cup_to_remove = current_cup
+    for _ in range(3):
+        cup_to_remove = cups[cup_to_remove]
+        removed_three.append(cup_to_remove)
+
+    # Last cup to remove's adjacent is new current cup adjacent
+    cups[current_cup] = cups[cup_to_remove]
+
+    destination_num = current_cup - 1
+    min_circle = [x for x in range(1, 4) if x not in removed_three]
+    max_circle = [x for x in range(999997, 1000001) if x not in removed_three]
+    if destination_num < min_circle[0]:
+        destination_num = max_circle[-1]
+    elif destination_num in removed_three:
+        while True:
+            destination_num -= 1
+            if destination_num not in removed_three:
+                break
+            if destination_num < min_circle[0]:
+                destination_num = max_circle[-1]
+                break
+
+    current_adjacent = cups[destination_num]
+    cups[destination_num] = removed_three[0]
+    cups[removed_three[1]] = removed_three[2]
+    cups[removed_three[2]] = current_adjacent
+
+    current_cup = cups[current_cup]
+
+first_cup = cups[1]
+product = first_cup * cups[first_cup]
+
+# Answer Two
+print("Product of the two cups immediately clockwise from cup 1:", product)
+
+{% endhighlight %}
+
+Here's a breakdown of the main changes:
+
+### The cups are stored in a dictionary now not a list
+
+This is the crux of the efficiency gains required for this puzzle. I do not
+want to have to store and, even worse, manipulate a list one million
+elements long so I deconstructed it; what is the difference between a list and
+each element knowing the element that comes after it? This is the set up for
+the dictionary.
+
+It still stores one million cups and, one could argue, actually stores two
+million cups as each one of them have another cup as their value but it is
+the manipulation of these cups where the efficiency lay. Instead of every cup
+having to shift index when the removed_three are taken and then again when they
+are placed back, only three references need to be changed: the current_cup that
+determined which cups were to be removed, the final cup of the three that were
+removed and whichever cup they end up being inserted next to.
+
+Another advantage to this, that is more psychological than anything else, is
+how closely it resembles a circle. Unlike a linear list that we jump back to
+the beginning of as required the dictionary keys and values create a genuinely
+circular data structure.
+
+It struck me, almost as soon as the second star was within my hands, that I
+didn't have to drop the list data structure to achieve the results above and
+may have in fact been better keeping it. With the index as the cup number and
+the value at that index as the next cup's number the modifications would have
+been just as simple and no two million cup numbers would have been needed. In
+case that's confusing, here's an example:
+
+- Given cups 1-5 in the following order: 2, 3, 5, 1, 4.
+
+- The list representation of this list wouldn't be [2, 3, 5, 1, 4] as you might
+expect but instead it would be [4, 3, 5, 2, 1] as cup 1 is before cup 4 etc.
+
+- Let's say cups numbered 3, 5 and 1 are the three cards chosen and are to be
+moved after the 4 (at the end of the list) i.e. 2, 4, 3, 5, 1 is the new cup
+order (not the new cup order in the proposed circular representation).
+
+- Only three values have to be updated: the one before the slice, the one
+after the slice and the last cup of the slice i.e. [2, 4, 5, 3, 1] is the
+new, circular representation cup list.
+
+With a small example such as the above this seems more hassle than it is worth
+but hopefully it clarifies how the list version of the dictionary would work.
+Honestly, having written it out I think the dictionary is worth the doubling of
+the cups as it expresses the link between cup and next cup far more explicitly
+than having to take into account the hidden variable of a list's index.
+
+### Min/Max are now inverted list comprehensions
+
+For part one, the min and max functions could quickly find the values required
+as the number of cups was small but part two requires a different approach. It
+didn't come to me as quickly as one might expect, but instead of combing
+through the just shy of a million cups not a part of the removed_three for the
+lowest/highest value you can use the removed_three values to ascertain what it
+must be. For example, using min as the value you want to determine, if you have
+the following removed_three - [1, 2, 756332] then you obviously know that the
+lowest value in the near million you need to consider will be 3.
+
+This tactic works just as well at the top end but both could have perhaps done
+with the use of min/max post list comprehension as opposed to me taking the 0th
+or -1th value in the list respectively. Still, combined with the main
+efficiency edit above this insight and implementation made the problem's
+runtime rather unproblematic.
+
+## Overall
+
+Two stars and a real sense of satisfaction from this one given that a couple of
+insights turned a tough second part into something tractable. Had the
+manipulation of the data remained a sluggish affair debugging the code could
+have been a car crash; I have experience with waiting far too long on a
+script that would never finish due to knowing my implementation would be slow
+before running it. As it was, no fly was to be found within today's ointment
+and my cup was overfilling with a sense of pride for the rest of the day.
