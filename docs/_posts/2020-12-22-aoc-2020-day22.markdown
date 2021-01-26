@@ -1,0 +1,52 @@
+---
+layout: post
+title:  "Advent of Code 2020 - Day 22: Crab Combat"
+date:   2020-12-22 
+categories: advent-of-code
+tags: advent-of-code advent-of-code-2020 python
+---
+
+Another game means another day of translation rather than inspiration but
+that is not to say that the solutions weren't enjoyable to implement. Come
+and combat crabs with AoC day 22.
+
+The rules one has to code around can be found on
+[the official page](https://adventofcode.com/2020/day/22) and the results of my
+fight with the cunning crustacean can be found below:
+
+### Part One - Smooth Sailing
+
+The code for this one really does speak for itself; not necessarily because of
+how it's written but just because of how simple the rules are to implement:
+
+{% highlight python %}
+
+with open('inputs/2020_22.txt') as f:
+    player_1, player_2 = [line for line in f.read().split('\n\n')]
+    player_1 = [int(x) for x in player_1.split('\n')[1:]]
+    player_2 = [int(x) for x in player_2.split('\n')[1:-1]]
+
+while player_1 and player_2:
+    one_card = player_1[0]
+    two_card = player_2[0]
+    if one_card > two_card:
+        player_1.extend([one_card, two_card])
+    else:
+        player_2.extend([two_card, one_card])
+
+    player_1 = player_1[1:]
+    player_2 = player_2[1:]
+
+winning_order = player_1 + player_2
+winning_score = 0
+for rev_index, card in enumerate(winning_order[::-1], 1):
+    winning_score += rev_index * card
+
+# Answer One
+print("Winning player's score:", winning_score)
+
+{% endhighlight %}
+
+Looking at it now a pop() to set the one_card and two_card variables would have
+probably been a better approach than the list splitting but the difference is
+negligible as is the extension needed for...
