@@ -47,6 +47,110 @@ print("Winning player's score:", winning_score)
 
 {% endhighlight %}
 
-Looking at it now a pop() to set the one_card and two_card variables would have
-probably been a better approach than the list splitting but the difference is
-negligible as is the extension needed for...
+Looking at it now a pop() to set the one_card and two_card variables might have
+been better but it would have required either an import of the collections
+module for a deque or reversing the list. The difference is negligible as is
+the extension needed for...
+
+## Part Two - Recursion, Refactor and Revenge
+
+The code may look a bit fuller post part two but the implementation remains the
+same as the only difference to the rules can be summarised as:
+
+> If both players have the same of more number of cards left in their hand as
+the value of the card they pulled then you enter into a recursive round of
+the game to decide the winner.
+
+There's also a rule to prevent infinite loops - if both players have the same
+cards as a previous round then player one wins the round - but the recursion is
+where the fun is.
+
+With that in mind, a refactor of a round of the game into a function was my
+first port of call resulting in code that goes a little something like this:
+
+{% highlight python %}
+
+def play_game(player_1: list, player_2: list, part_two: bool=False) -> tuple:
+    """Play a game of (Recursive) Combat returning winner and their hand.
+    Args:
+        player_1: List of player one's card values.
+        player_2: List of player two's card values.
+    Return:
+        Tuple of winner's number (1/2) and their winning card values in order.
+    """
+    prev_rounds = set()
+    while player_1 and player_2:
+        one_card = player_1[0]
+        two_card = player_2[0]
+        if (tuple(player_1), tuple(player_2)) in prev_rounds:
+            player_1.extend([one_card, two_card])
+            return (1, player_1)
+        prev_rounds.add((tuple(player_1), tuple(player_2)))
+
+        if not part_two:
+            if one_card > two_card:
+                player_1.extend([one_card, two_card])
+            else:
+                player_2.extend([two_card, one_card])
+        else:
+            if len(player_1) - 1 >= one_card and len(player_2) - 1 >= two_card:
+                one_recursive = player_1[1: one_card + 1].copy()
+                two_recursive = player_2[1: two_card + 1].copy()
+                winner = play_game(one_recursive, two_recursive, True)
+                if winner[0] == 1:
+                    player_1.extend([one_card, two_card])
+                else:
+                    player_2.extend([two_card, one_card])
+
+            else:
+                if one_card > two_card:
+                    player_1.extend([one_card, two_card])
+                else:
+                    player_2.extend([two_card, one_card])
+
+        player_1 = player_1[1:]
+        player_2 = player_2[1:]
+
+    if player_1:
+        return (1, player_1)
+    else:
+        return (2, player_2)
+
+
+with open('inputs/2020_22.txt') as f:
+    player_1, player_2 = [line for line in f.read().split('\n\n')]
+    player_1 = [int(x) for x in player_1.split('\n')[1:]]
+    player_2 = [int(x) for x in player_2.split('\n')[1:-1]]
+
+winner, winning_order = play_game(player_1.copy(), player_2.copy())
+winning_score = 0
+for rev_index, card in enumerate(winning_order[::-1], 1):
+    winning_score += rev_index * card
+
+# Answer One
+print("Combat winner's score:", winning_score)
+
+winner, winning_order = play_game(player_1, player_2, part_two=True)
+winning_score = 0
+for rev_index, card in enumerate(winning_order[::-1], 1):
+    winning_score += rev_index * card
+
+# Answer Two
+print("Recursive Combat winner's score:", winning_score)
+
+{% endhighlight %}
+
+With the exception of a branch to deal with the additional logic required for
+part two and a set to keep track of prev_rounds to avoid the infinite loops
+nothing has changed from the first part.
+
+These codifying a game days are, as I have previously mentioned, my least
+favourite of the Advent of Code Calendar but whilst I might not have learned
+anything substantial from it I enjoyed it well enough.
+
+## Overall
+
+In truth, the image of playing cards against a crab lasted longer than the
+challenge of the day itself but perhaps that's not a bad thing. The crab-based
+chronicle of today was fun and the game was simple to understand and implement
+and dealt an interesting second hand.
