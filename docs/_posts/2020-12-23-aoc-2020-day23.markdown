@@ -10,7 +10,7 @@ A two day gaming session has always been excessive and though it was more than
 doable today is one I could have done without. Still, it was a little bit more
 involved than
 [yesterday's offering](https://findlayian.com/2020-12-22-aoc-2020-day22.html)
-and it took a bit of interesting work to conqeur the crustacean in part two.
+and it took a bit of interesting work to conquer the crustacean in part two.
 
 The rulebook are on
 [the official page](https://adventofcode.com/2020/day/23) and you can cop a
