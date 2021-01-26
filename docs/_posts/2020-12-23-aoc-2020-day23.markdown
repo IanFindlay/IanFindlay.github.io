@@ -1,0 +1,81 @@
+---
+layout: post
+title:  "Advent of Code 2020 - Day 23: Crab Cups"
+date:   2020-12-23 
+categories: advent-of-code
+tags: advent-of-code advent-of-code-2020 python
+---
+
+A two day gaming session has always been excessive and though it was more than
+doable today is one I could have done without. Still, it was a little bit more
+involved than
+[yesterday's offering](https://findlayian.com/2020-12-22-aoc-2020-day22.html)
+and it took a bit of interesting work to conqeur the crustacean in part two.
+
+The rulebook are on
+[the official page](https://adventofcode.com/2020/day/23) and you can cop a
+look at my cups below:
+
+### Part One - A Clockwork Crab
+
+As with all of the game-based puzzles there was limited room for creativity so
+the central aspect worth discussing is the handling of the circular nature of
+the cups. To me, circles equal clocks which equal modular arithmetic and so it
+is in the code below:
+
+{% highlight python %}
+
+with open('inputs/2020_23.txt') as f:
+    cups = [int(x) for x in f.read().strip()]
+
+current_cup = cups[0]
+for _ in range(100):
+    cc_index = cups.index(current_cup)
+    removed_three = cups[cc_index + 1: cc_index + 4]
+    i = 0
+    while len(removed_three) != 3:
+        removed_three.append(cups[i])
+        i += 1
+    for cup in removed_three:
+        cups.remove(cup)
+
+    destination_num = current_cup - 1
+    if destination_num < min(cups):
+        destination_num = max(cups)
+    if destination_num in removed_three:
+        while True:
+            destination_num -= 1
+            if destination_num in cups:
+                destination_cup = destination_num
+                break
+            if destination_num < min(cups):
+                destination_num = max(cups)
+                break
+
+    destination_index = cups.index(destination_num)
+    for _ in range(3):
+        cups.insert(destination_index + 1, removed_three.pop())
+
+    current_cup = cups[(cups.index(current_cup) + 1) % len(cups)]
+
+one_index = cups.index(1)
+labels = ''
+index = one_index + 1
+while index != one_index:
+    labels += str(cups[index])
+    index = (index + 1) % len(cups)
+
+# Answer One
+print("Labels on the cup after cup 1:", labels)
+
+{% endhighlight %}
+
+The only other thing of note is that I couldn't just split the list to get the
+removed_three cups as it may need to circle back to the start of the circle and
+therefore the list. My solution to this takes advantage of the fact that Python
+isn't strict about splices being sized accurately. By this I mean that if your
+end index is beyond the scope of the list, something that would result in an
+index error if referenced directly, the splice will simply include as much of
+the desired range as it can without raising an error. This allowed me to take
+the hypothetical, three cup splice, and add cups from the beginning of the list
+until the removed_three list has the length of three.
