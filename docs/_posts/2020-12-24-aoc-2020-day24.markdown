@@ -1,0 +1,84 @@
+---
+layout: post
+title:  "Advent of Code 2020 - Day 24: Lobby Layout"
+date:   2020-12-24 
+categories: advent-of-code
+tags: advent-of-code advent-of-code-2020 python
+---
+
+Twas the day before Christmas and and the raft was ashore with hexaganol tiles
+needing flipped on the floor.
+
+Flip on over to 
+[the official page](https://adventofcode.com/2020/day/24) and then mosey your
+way below to see how I mastered this mosaic:
+
+### Part One - Making a Maze Out of a Mosaic
+
+Following directions and toggling a tile is what the task boils down to but
+there are a few things of note here despite its simplicity:
+
+### No deliminator... no problem
+
+Usually the inputs can be parsed relatively easily with a split() or two after
+a readlines() or a light bit of regex but today was as simple as it gets
+provided you have one key realisation: '(n)orth' and '(s)outh' do not exist
+alone. This means that whilst moving through the letters of an instruction
+you can guarantee that and 's' or 'n' should be coupled with the next letter.
+
+My approach to this was to iterate through each instruction by index allowing
+me to form the two-letter directions and then skip the second of the pair's
+index.
+
+### How to represent tessellating hexagons
+
+The four cardinal direction map clearly to a grid and the addition of the four
+intercardinals barely complicates it at all but hexagons? Mapping their
+relationship to one another can get complicated quick with only 6 neighbours as
+going East then North West isn't the same as going West then North East.
+
+There are numerous ways to represent this hex grid but the one I've always
+liked is based upon the idea that rather than the usual two axis there are
+three. You can see how this works and how I utilised it by looking at how I got
+the first of today's star below:
+
+{% highlight python %}
+
+with open('inputs/2020_24.txt') as f:
+    instructions = [line.strip() for line in f.readlines()]
+
+tiles = {}
+# Translate hex grid  movements into cube coordinates
+directions = {
+        'e': (-1, 1, 0), 'se': (-1, 0, 1), 'sw': (0, -1, 1),
+        'w': (1, -1, 0), 'nw': (1, 0, -1), 'ne': (0, 1, -1)
+}
+for instruction in instructions:
+    current_coords = (0, 0, 0)
+    index = 0
+    while index < len(instruction):
+        y, x, z = current_coords
+        if instruction[index] not in directions:
+            move = "{}{}".format(instruction[index], instruction[index + 1])
+            index += 1
+        else:
+            move = instruction[index]
+        dy, dx, dz = directions[move]
+        current_coords = (y + dy, x + dx, z + dz)
+        index += 1
+
+    current_colour = tiles.get(current_coords, 0)
+    tiles[current_coords] = 1 if current_colour == 0 else 0
+
+# Answer One
+print("Number of black tiles:", sum([1 for x in tiles.values() if x == 1]))
+
+{% endhighlight %}
+
+There is no point storing the white tiles and this is somewhere that my code
+falls flat. I only enter a tile into the dictionary when it is turned to black
+the first time but after that, even if turned back to white, it remains in the
+dictionary. This deficiency leads to need for a list comprehension to get the
+number of black tiles as opposed to a simple len(). It's a simple change to
+make - removing any black tiles that get landed on from the dictionary - and
+I doubt there will be another memory heavy Conway's Game of Life like...
