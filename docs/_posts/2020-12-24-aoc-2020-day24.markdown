@@ -82,3 +82,162 @@ dictionary. This deficiency leads to need for a list comprehension to get the
 number of black tiles as opposed to a simple len(). It's a simple change to
 make - removing any black tiles that get landed on from the dictionary - and
 I doubt there will be another memory heavy Conway's Game of Life like...
+
+## Part Two - Conway Comes A Calling
+
+I'm not sure what else one should have expected as an extension to the above
+but I was surprised to see it nonetheless. It can be reduced down to this:
+
+> Black tiles become white with more than two black neighbouring tiles whereas
+white tiles need EXACTLY two black neighbouring tiles to be flipped to black.
+Tiles are updated simultaneously and this transformation is done 100 times.
+
+Tracking only the black tiles has gone from a nice idea to a damn near
+necessity but, as mentioned above, is easy enough to implement. The only other
+complication is the 'aura' of tiles that need to be checked around the black
+ones. It's not enough to see if the black on will be flipped you have to see
+if it's influence will lead to any of it's neighbours being flipped as well.
+I coded it up, with the trimmed dictionary in place, expecting an efficient
+grab of the second star and...
+
+### A mosaic moving through molasses
+
+I sat and sighed; my pinky hovering over the control key and my pointer giving
+the 'c' key a similar treatment. Was the script broken or slow? And if it is
+just slow is it acceptably so? I scanned the script, stretched the old legs and
+then dove more thoroughly into the code. Here's the code post-fix and I'll
+point out what went wrong below:
+
+{% highlight python %}
+
+with open('inputs/2020_24.txt') as f:
+    instructions = [line.strip() for line in f.readlines()]
+
+tiles = {}
+directions = {
+        'e': (-1, 1, 0), 'se': (-1, 0, 1), 'sw': (0, -1, 1),
+        'w': (1, -1, 0), 'nw': (1, 0, -1), 'ne': (0, 1, -1)
+}
+for instruction in instructions:
+    current_coords = (0, 0, 0)
+    index = 0
+    while index < len(instruction):
+        y, x, z = current_coords
+        if instruction[index] not in directions:
+            move = "{}{}".format(instruction[index], instruction[index + 1])
+            index += 1
+        else:
+            move = instruction[index]
+        dy, dx, dz = directions[move]
+        current_coords = (y + dy, x + dx, z + dz)
+        index += 1
+
+    current_colour = tiles.get(current_coords, 0)
+    if current_colour == 0:
+        tiles[current_coords] = 1
+    else:
+        del tiles[current_coords]
+
+# Answer One
+print("Number of black tiles:", len(tiles))
+
+for _ in range(100):
+    new_tiles = {}
+    for coords in tiles:
+        y, x, z = coords
+        black_adjacent = 0
+        for next_to in directions.values():
+            next_to_coords = (next_to[0] + y, next_to[1] + x, next_to[2] + z)
+            if next_to_coords in tiles:
+                black_adjacent += 1
+            else:
+                double_black_adjacent = 0
+                for double_next_to in directions.values():
+                    double_next_coords = (
+                            double_next_to[0] + next_to_coords[0],
+                            double_next_to[1] + next_to_coords[1],
+                            double_next_to[2] + next_to_coords[2]
+                    )
+
+                    if double_next_coords in tiles:
+                        double_black_adjacent += 1
+
+                if double_black_adjacent == 2:
+                    new_tiles[next_to_coords] = 1
+
+        if black_adjacent in (1, 2):
+            new_tiles[coords] = 1
+
+    tiles = new_tiles
+
+# Answer Two
+print("Number of black tiles after 100 days:", len(tiles))
+
+{% endhighlight %}
+
+Take a look at the if/else branch in part two. This slightly unsightly section
+is how I check the 'aura' around the black tile to see if it will be flipped
+for the next cycle. I only do this for the white tiles, as the black ones will
+be updated/have already been updated when they are reached in the tile
+dictionary. This last part was the vital, though incomplete, improvement needed
+to complete the day. Initially, all adjacent tiles were being checked resulting
+in multiple, redundant recalculations. Not processing the black tiles within
+the 'aura' may have led me away from the actual solution - the memoisation
+that I seem to perpetually miss - but it was enough...
+
+### It wasn't enough - mosaic memoisation
+
+Whilst typing the above I decided the memoisation change was worth making so
+here it is (roughly halves the runtime):
+
+{% highlight python %}
+
+for _ in range(100):
+    new_tiles = {}
+    checked = set()
+    for coords in tiles:
+        y, x, z = coords
+        black_adjacent = 0
+        for next_to in directions.values():
+            next_to_coords = (next_to[0] + y, next_to[1] + x, next_to[2] + z)
+            if next_to_coords in tiles:
+                black_adjacent += 1
+
+            elif next_to_coords in checked:
+                pass
+
+            else:
+                double_black_adjacent = 0
+                for double_next_to in directions.values():
+                    double_next_coords = (
+                            double_next_to[0] + next_to_coords[0],
+                            double_next_to[1] + next_to_coords[1],
+                            double_next_to[2] + next_to_coords[2]
+                    )
+
+                    if double_next_coords in tiles:
+                        double_black_adjacent += 1
+
+                if double_black_adjacent == 2:
+                    new_tiles[next_to_coords] = 1
+
+                checked.add(next_to_coords)
+
+        if black_adjacent in (1, 2):
+            new_tiles[coords] = 1
+
+        checked.add(coords)
+
+    tiles = new_tiles
+
+# Answer Two
+print("Number of black tiles after 100 days:", len(tiles))
+
+{% endhighlight %}
+
+## Overall
+
+Had I not encountered hexgrids before this may have been a little bit more of a
+head scratcher but I enjoyed it nonetheless. I'm happy with the way I navigated
+the few complications that arose and think my overly verbose variable names
+clarify the code nicely.
