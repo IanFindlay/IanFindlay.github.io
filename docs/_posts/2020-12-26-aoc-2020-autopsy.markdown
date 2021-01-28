@@ -25,19 +25,38 @@ DFS/BFS/A\*/Dijkstra algorithms fairly well for me.
 
 If there was a theme I missed it and the same applies to if there wasn't.
 
+## Sod Christmas, Just Save Yourself
+
+
+
 ## Classes Coming in Clutch
 
 
 
 ## Highlight of the Holiday
 
+Possibly the hardest challenge of the year and the one that I felt the best
+about upon completion.
+[Day 20 - Jurassic Jigsaw](https://findlayian.com/advent-of-code/2020/12/20/aoc-2020-day20.html)
+was a multi-step affair requiring different transformations of a pattern,
+stitching them together and then counting how many sea monsters there are...
+what's not to enjoy about that.
 
+Reassembling the image through a DFS was the most creativity I showed during
+the festivities and it: worked wonderfully: quick, was comprehensible and
+somewhat crafty (even if I do say so myself). It went from thought to working
+code far faster than it should have and whilst overkill, but feeling correct,
+for part one it was absolutely required for the second star.
+
+Then, inspiration strikes once more for quickly identifying the pattern for the
+monsters and I feel like I've truly conquered an absolute beast!
 
 ## This Year's Festive Log
 
 There are some days in AoC's past that I've hated when I'm in the midst of them
 and then there are those
-[like day 19]() whose code I still can't bear to look at. A strong initial idea
+[like day 19](https://findlayian.com/advent-of-code/2020/12/19/aoc-2020-day19.html)
+whose code I still can't bear to look at. A strong initial idea
 let down by unfamiliarity and a lack of skill led to a star that I don't feel
 good about and arguably don't deserve. Sure it works and a lot of work and far
 too much time went in to it, but it's undoubtedly the nadir of nativity.
