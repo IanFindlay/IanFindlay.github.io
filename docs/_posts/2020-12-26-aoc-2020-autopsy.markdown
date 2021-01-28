@@ -15,11 +15,32 @@ be a long post but there are a few overall things worth mentioning.
 
 ## Requiem for the Themes
 
+There was a lot of Conway puzzles and initially I thought that regex might have
+been front-and-centre but this year I failed to find a theme. The intcode,
+while contentious, of last year was something I looked forward to. I understand
+it meant that one failed day could compound into missing many a'star but it
+allowed these daily challenges to delve deep into a particular facet of coding.
+Another year, I remember being very pathfinding heavy and it cemented the
+DFS/BFS/A\*/Dijkstra algorithms fairly well for me.
+
+If there was a theme I missed it and the same applies to if there wasn't.
+
 ## Classes Coming in Clutch
+
+
 
 ## Highlight of the Holiday
 
+
+
 ## This Year's Festive Log
+
+There are some days in AoC's past that I've hated when I'm in the midst of them
+and then there are those
+[like day 19]() whose code I still can't bear to look at. A strong initial idea
+let down by unfamiliarity and a lack of skill led to a star that I don't feel
+good about and arguably don't deserve. Sure it works and a lot of work and far
+too much time went in to it, but it's undoubtedly the nadir of nativity.
 
 ## Difficulty Decrease
 
