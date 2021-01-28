@@ -1,0 +1,45 @@
+---
+layout: post
+title:  "Advent of Code 2020 - Autopsy"
+date:   2020-12-26 
+categories: advent-of-code
+tags: advent-of-code advent-of-code-2020 python
+---
+
+For the first time my AoC ended on the 25th and whilst I wish this was because
+of a year of improvements on my end I think it is more to do with the level
+of difficulty sliding a long way down the North Pole this year.
+
+With individual posts for each day already up on the site, this isn't going to
+be a long post but there are a few overall things worth mentioning.
+
+## Requiem for the Themes
+
+## Classes Coming in Clutch
+
+## Highlight of the Holiday
+
+## This Year's Festive Log
+
+## Difficulty Decrease
+
+It became clear fairly early on that this year wouldn't be as challenging as
+year's past; the first weekend didn't come with it's usual kick and at the time
+I was rather disappointed. Advent of Code has represented a large part of my
+festive schedule on other years. A humbling, frustrating experience that I've
+scraped my way through. These 'quick' challenges sometimes represented my
+entire day but in the end I always felt my time had been invested well as I
+would emerge with new tricks, algorithms and mathematical understanding. This
+year, the lack of challenge unfortunately came with a lack of growth.
+
+I learnt a few things and, arguably as importantly, reinforced skills that had
+lain dormant since last time but the post-battle euphoria happened only twice
+and was nowhere near as powerful. That being said, I think this might have been
+my favourite year in terms of difficulty. For the first time I was able to grab
+two stars everyday. For the first time I didn't feel overwhelmed by a backlog
+or tempted to look at someone else's answer for a clue. I felt like I was
+coding with intention not just trying stuff hoping it I could wrangle the right
+answer out of a mess of code.
+
+I got less out of this year but put far less in terms of my time and energy
+in to it - I think the trade was worthwhile.
