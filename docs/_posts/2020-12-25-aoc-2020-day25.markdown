@@ -1,0 +1,75 @@
+---
+layout: post
+title:  "Advent of Code 2020 - Day 25: Combo Breaker"
+date:   2020-12-25 
+categories: advent-of-code
+tags: advent-of-code advent-of-code-2020 python
+---
+
+Little to no presents under my tree this year but unlike most of it's namesakes
+Advent of Code does provide a treat on the twenty-fifth. In place of the little
+cardboard door hiding a chocolate we get an electronic door, a card and
+erroneous encryption.
+
+Unlock the full details over at
+[the official page](https://adventofcode.com/2020/day/25) and then come back
+here to see how I unwrapped this one.
+
+### Part One - Handshake Hackery
+
+Despite this being a quickie I actually learnt two useful things from today but
+first, here's the code:
+
+{% highlight python %}
+
+with open('inputs/day_25.txt') as f:
+    card_key, door_key = [int(line.strip()) for line in f.readlines()]
+
+num = 1
+loops = 0
+while True:
+    loops += 1
+    num *= 7
+    num = num % 20201227
+    if num == card_key:
+        break
+
+num = 1
+for loop in range(loops):
+    num = num * door_key
+    num = num % 20201227
+
+# Answer One
+print("Encryption Key:", num)
+
+{% endhighlight %}
+
+As you can see, I just directly translated the content of the puzzle into code
+with no imagination or consideration. This was the first year I was going into
+the final day full of stars and my change at a leaderboard finish was the best
+it would ever be; I set my alarm, woke up at ~3 in the morning and wrote the
+above... well, almost. Initially, rather than a 'while True' loop I had:
+
+{% highlight python %}
+
+while n < card_key:
+
+{% endhighlight %}
+
+I thought I was hedging my bets here. No risk of infinite runtimes if I've made
+an error as the loop will end once the target is exceeded. Half an hour of
+alternating between code that wouldn't produce a logical answer and the puzzle
+description I realised I should probably have stayed in bed.
+
+The problem is that due to the mod part of the calculation the value of n can
+go above the target before reaching it. From this I realised that one shouldn't
+pick their loop conditions assuming their safe.
+
+The second thing I learnt was that the pow() function can accept a third
+parameter, the modulus, meaning I essentially wrote an inefficient version of
+it for my answer. I've kept it as I wrote it, for now at least, but learning
+this made today undeniably worth it.
+
+This may have been the last day but the posts aren't quite over so check out my
+[Advent of Code Autopsy]() for my overall thoughts on this year's Yuletide
+teasers.
