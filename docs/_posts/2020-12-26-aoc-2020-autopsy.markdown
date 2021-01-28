@@ -27,11 +27,19 @@ If there was a theme I missed it and the same applies to if there wasn't.
 
 ## Sod Christmas, Just Save Yourself
 
-
+The narrative theme, however, was a nice change of pace. Similar puzzles were
+given a fresh coat of paint and came out shinier than if Christmas was once
+again on the line. The story isn't the focus of course but I enjoyed it overall
+and the absurd situations left some fun images floating around in my head.
 
 ## Classes Coming in Clutch
 
-
+Utilised infrequently but never without success, classes offered me a lot of
+confidence in my code and its ability to contort to the demands of the second
+star. Sure they were small with few methods and could have perhaps been
+stripped back to smaller structures but they felt robust and satisfying.
+Definitely something I need to make more use of in future Advent of Code's and
+other projects.
 
 ## Highlight of the Holiday
 
