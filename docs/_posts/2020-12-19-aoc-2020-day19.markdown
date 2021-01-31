@@ -34,9 +34,122 @@ lists was simple, it represented the data accurately and it was readable... it
 was also slow to trawl through making checking each message against it
 infeasible.
 
+### Regex to the rescue
+
 Eventually, the idea of the regex came to me and that idea represented far more
 progress than the code I was just about to delete in its entirety. Here's what
 it eventually looked like:
+
+{% highlight python %}
+
+import re
+
+
+def convert_to_regex(rules_dict: dict, rule_num: int) -> str:
+    """Convert rule to its regex equivalent and return it.
+    Args:
+        rules_dict: Dictionary of rule_num: rule.
+        rule_num: Key for rules_dict corresponding to rule to be converted.
+
+    Returns:
+        The regex string equivalent of the rule at key rule_num in rules_dict.
+        
+    """
+    if rules_dict[rule_num] in ('a', 'b'):
+        return rules_dict[rule_num]
+
+    rules = []
+    for branches in rules_dict[rule_num].split('|'):
+        branch_answer = ''
+        for branch_num in branches.split():
+            branch_re = convert_to_regex(rules_dict, branch_num)
+            branch_answer += branch_re
+        rules.append(branch_answer)
+
+    return '(' + '|'.join(rules) + ')'
+
+
+rules, messages = open('inputs/2020_19.txt').read().split('\n\n')
+rules_dict = {}
+for line in rules.split("\n"):
+    rule_num, rule = [x.strip() for x in line.split(':')]
+    if rule[0] == '"':
+        rule = rule.strip('"')
+    rules_dict[rule_num] = rule
+
+regex = re.compile(convert_to_regex(rules_dict, '0'))
+
+matches = 0
+for message in messages.split():
+    if regex.fullmatch(message):
+        matches += 1
+
+# Answer One
+print("Number of messages that completely match rule 0:", matches)
+
+{% endhighlight %}
+
+Parsing the rules may look a little ungainly due to the if statement but I knew
+that the speech marks around the 'a' and 'b' would come back to haunt me if I
+didn't get rid of them. 
+
+Solving rule 0 necessitates solving all other rules therefore one can, instead
+of starting with the 'a' and 'b' rules and working outwards, delve into the
+rules from the 'finish line'. This was my approach and I knew recursion was
+going to be a big part of it. Essentially, this function explores all of the
+possible branches according to the rules until they clarify into possible
+sequences of 'a's and 'b's and creates a regex statement that represents each
+branch. Combining these statements, due to the pipe character and brackets for
+grouping, is trivial and once rule 0 is converted so is checking the messages
+against it.
+
+There isn't all that much to the code and it's creation of the regex string but
+getting to this point was by far the toughest challenge of this years advent so
+far. My part one solution was initially far more verbose than this but I absent
+mindedly cleaned and refined it while trying to get my head around...
+
+## Part Two - A Refusal of Recursion
+
+Recursion may have been the linchpin of part one but it got its revenge here.
+The new challenge was simply to replace two of the rules in the following way:
+
+- 8: 42 becomes 8: 42 \| 42 8
+
+- 11: 42 31 becomes 11: 42 31 \| 42 11 31
+
+They may not seem like dramatic changes but as the question makes clear, they
+complicate things a lot. They both now reference themselves meaning that no
+amount of trying to resolve down to an 'a' or a 'b' is going to work. The rules
+descending into an infinite loop is not something I was anticipating or, as
+became quickly clear and solidified over the next few hours of frustration, was
+equipped to deal with.
+
+### Looking for an alternative angle
+
+I had invested a lot of time and mental energy into not only getting my regex
+idea off the ground but making it fly (to look at) and the fear that I would
+have to abandon the approach completely for the second star was genuinely
+uncomfortable. I wondered if perhaps I had approached the problem from entirely
+the wrong end, generating the regex encompassing all possible values neglects
+the advantage that we have - the messages that have to be checked are know.
+
+This led me to think about ways to check the messages against the rules
+dynamically i.e. go letter by letter and see if it was a valid possibility.
+How one would go about this, I couldn't get a handle on. The depths of the
+rules possibilities have to be plumbed regardless and you wouldn't want to do
+it fresh for each message meaning some representation of the rules would have
+to be created and stored. But how do you know when you further delving into the
+infinite would have no effect on the validation of the messages at hand?
+
+### Giving up or: how I stopped worrying and learned to love brute force
+
+In the end, I slapped a depth variable on the function and kept raising it
+until I got the right answer. My thoughts above eventually led me to this
+rather crass solution. How do you know when to get off the infinite train? You
+take it as short a distance as possible and see if it you end up where you
+wanted to be and, if not, take it a little further. The change to the code was
+minimal as was the satisfaction I felt upon completing it and the day's
+puzzles:
 
 {% highlight python %}
 
@@ -89,25 +202,40 @@ for message in messages.split():
 # Answer One
 print("Number of messages that completely match rule 0:", matches)
 
+rules_dict["8"] = "42 | 42 8"
+rules_dict["11"] = "42 31 | 42 11 31"
+
+regex = re.compile(convert_to_regex(rules_dict, '0'))
+
+matches = 0
+for message in messages.split():
+    if regex.fullmatch(message):
+        matches += 1
+
+# Answer Two
+print("Number of messages that completely match rule 0 after update:",
+      matches)
+
 {% endhighlight %}
 
-Parsing the rules may look a little ungainly due to the if statement but I knew
-that the speech marks around the 'a' and 'b' would come back to haunt me if I
-didn't get rid of them. Another thing of note before going into the discussion
-of how it works: this is the post part-two version and the depth variable isn't
-relevant for part one.
+## Overall
 
-Solving rule 0 necessitates solving all other rules therefore one can, instead
-of starting with the 'a' and 'b' rules and working outwards, delve into the
-rules from the 'finish line'. This was my approach and I knew recursion was
-going to be a big part of it. Essentially, this function explores all of the
-possible branches according to the rules until they clarify into possible
-sequences of 'a's and 'b's and creates a regex statement that represents each
-branch. Combining these statements, due to the pipe character and brackets for
-grouping, is trivial and once rule 0 is converted so is checking the messages
-against it.
+I've had more frustrating days during Advent of Code's in the past - one year I
+was watching Goblins and Elves battle for the better part of two days before
+fixing the numerous implementation errors that somehow had no impact on the
+example inputs but destroyed the real deal - but I can usually look back on the
+code and feel some satisfaction. This may be pride in overcoming the challenge,
+surprise that my implementation worked as well as I hoped it would (or at all)
+or the joy or hard won new knowledge but with today I feel none of this. There
+are only two upsides to the day:
 
-There isn't all that much to the code and it's creation of the regex string but
-getting to this point was by far the toughest challenge of this years advent so
-far. My part one solution was initially far more verbose than this but I absent
-mindedly cleaned and refined it while trying to get my head around...
+- It's over and I am still on track for getting every star on its corresponding
+day.
+
+- I have an interesting area of study to delve into at some point in what I
+believe was the intended solution of a context-free grammar.
+
+This grammar approach is perhaps closer to what I originally intended with my
+nested lists and iterating through the messages while matching it to these
+different branches but I lacked the knowledge and experience to make something
+anywhere near performant enough.
