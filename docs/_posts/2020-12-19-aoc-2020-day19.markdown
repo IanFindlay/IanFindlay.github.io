@@ -1,0 +1,113 @@
+---
+layout: post
+title:  "Advent of Code 2020 - Day 19: Monster Messages"
+date:   2020-12-19 
+categories: advent-of-code
+tags: advent-of-code advent-of-code-2020 python
+---
+
+The difficulty may have ramped up but I had confidence in my approach and could
+already picture the robust implementation that would set me up for the second
+star; reality, as it so often does, smacked me back down to earth.
+
+To get the full message move over to
+[the official page](https://adventofcode.com/2020/day/19) but you can see how
+I muddled my way into the MIB (Mythical Information Bureau) below.
+
+## Part One - Write, Remove Then Regex
+
+Earlier, I had declared this (albeit speculatively) as the year of the regex
+and it was perhaps this that led to my approach - decode the rules and compile
+it into a regex to easily check whether a line matches rule 0. I'm not saying
+this idea was necessarily wrong, in fact with an exception I will mention in
+part two I think it is the best strategy, but it was fraught with frustration.
+
+### Thrown out of the nest
+
+The first painful part came from me making a hasty decision in regards to
+how I would represent the decoded rules. To my mind, nested lists would
+allow me to hold all of the possibilities in an accurate, hierarchical
+structure. I coded this before deciding upon how I would check the messages
+against the rules, in my mind making progress while allowing my subconscious to
+process the puzzle fully, and that was the mistake. The creation of the nested
+lists was simple, it represented the data accurately and it was readable... it
+was also slow to trawl through making checking each message against it
+infeasible.
+
+Eventually, the idea of the regex came to me and that idea represented far more
+progress than the code I was just about to delete in its entirety. Here's what
+it eventually looked like:
+
+{% highlight python %}
+
+import re
+
+
+def convert_to_regex(rules_dict: dict, rule_num: int, depth: int=0) -> str:
+    """Convert rule to its regex equivalent and return it.
+    Args:
+        rules_dict: Dictionary of rule_num: rule.
+        rule_num: Key for rules_dict corresponding to rule to be converted.
+        depth: Number of recursive calls to the function. Defaults to 0 and
+               used to set a limit on processing of loops.
+    Returns:
+        The regex string equivalent of the rule at key rule_num in rules_dict
+        (to a capped depth).
+    """
+    if depth > 15:
+        return ''
+
+    if rules_dict[rule_num] in ('a', 'b'):
+        return rules_dict[rule_num]
+
+    rules = []
+    for branches in rules_dict[rule_num].split('|'):
+        branch_answer = ''
+        for branch_num in branches.split():
+            branch_re = convert_to_regex(rules_dict, branch_num, depth + 1)
+            branch_answer += branch_re
+        rules.append(branch_answer)
+
+    return '(' + '|'.join(rules) + ')'
+
+
+rules, messages = open('inputs/2020_19.txt').read().split('\n\n')
+rules_dict = {}
+for line in rules.split("\n"):
+    rule_num, rule = [x.strip() for x in line.split(':')]
+    if rule[0] == '"':
+        rule = rule.strip('"')
+    rules_dict[rule_num] = rule
+
+regex = re.compile(convert_to_regex(rules_dict, '0'))
+
+matches = 0
+for message in messages.split():
+    if regex.fullmatch(message):
+        matches += 1
+
+# Answer One
+print("Number of messages that completely match rule 0:", matches)
+
+{% endhighlight %}
+
+Parsing the rules may look a little ungainly due to the if statement but I knew
+that the speech marks around the 'a' and 'b' would come back to haunt me if I
+didn't get rid of them. Another thing of note before going into the discussion
+of how it works: this is the post part-two version and the depth variable isn't
+relevant for part one.
+
+Solving rule 0 necessitates solving all other rules therefore one can, instead
+of starting with the 'a' and 'b' rules and working outwards, delve into the
+rules from the 'finish line'. This was my approach and I knew recursion was
+going to be a big part of it. Essentially, this function explores all of the
+possible branches according to the rules until they clarify into possible
+sequences of 'a's and 'b's and creates a regex statement that represents each
+branch. Combining these statements, due to the pipe character and brackets for
+grouping, is trivial and once rule 0 is converted so is checking the messages
+against it.
+
+There isn't all that much to the code and it's creation of the regex string but
+getting to this point was by far the toughest challenge of this years advent so
+far. My part one solution was initially far more verbose than this but I absent
+mindedly cleaned and refined it while trying to get my head around...
