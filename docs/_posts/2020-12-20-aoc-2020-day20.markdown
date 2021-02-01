@@ -210,6 +210,8 @@ to make reassembling the image as easy as possible by cataloguing the...
 
 #### Edge cases
 
+{% highlight python %}
+
     def map_pattern_to_edges(self):
         """."""
         pattern_to_edges = {}
@@ -404,3 +406,372 @@ smaller monsters. The DFS for reassembling the image worked beautifully, ran
 far quicker than I though it would and felt like a genuine moment
 of inspiration the likes of which I come back to AoC each year for. With such a
 robust and well functioning part one I wasn't particularly worried about...
+
+## Part Two - Here Be Dragons
+
+Part two can be summarised as requiring three parts assuming you've reassembled
+the image in part one:
+
+> Remove the edges of each tile from the image and form the joined together
+image. 
+
+> Flip and rotate this image in the same manner as the tiles in the previous
+part
+
+> Look for monsters, a pattern of hashes and spaces that is given in the puzzle
+description and vaguely looks like the Loch Ness Monster, in the image and
+count how many hashes are not part of a sea monster.
+
+Before delving into the new functions I wrote to complete this part, a quick
+look at the modifications I made to part one sections for this second star.
+
+### Methodic refactor
+
+No need to show this change, a description will suffice. As I have to transform
+the full image in the same manner as the tiles I refactored all of the methods
+related to this (generate_patterns, pattern_flips and pattern_rotations) out of
+the image_tile class.
+
+### DFS differences
+
+In terms of the significant aspects of the DFS, nothing changed but there are a
+few small things:
+
+- I realised the folly of checking that the above_tile and/or left_tile exist
+as they have to. There is no position on the image other than the row or
+column being 0 where these positions won't have already been filled in by a
+previous round of the DFS loop.
+
+- I moved the check for success from the bottom of the function to the top in
+order to change the parameters indicating it to make it more explicit. I didn't
+like how the previous one required realising that you'd avoided the 'continues'
+that would indicate a tile didn't fit in order to get to this part of the
+function. The actual 'if statement' is True for the entirety of that round of
+the loop and doesn't indicate success by itself. In comparison, as soon as you
+pop() from the stack and check if the len() of used_tiles is equal to the len()
+of tiles, you have an explicit indication that the reassembly is over. It would
+perhaps work better at the bottom of the function where the old one was, but
+I still prefer it overall.
+
+### A tragedy of errors
+
+The other change was to correct the left and right rows in the
+map_pattern_to_edges method. I don't know if you spotted this error before, but
+I accidentally set the right row as the values of column 0 and the left as the
+values of the last column. This small error in visualisation resulted in hours
+of pain in part two. I had noticed that my ordering of the corners for the
+part one examples was different to those on the page but failed to realise the
+significance of this until I had strained, sweated and swore my way into deep
+frustration.
+
+It would be one thing to have made a mirror image of the correct pattern, the
+transformations would have meant that it would have had no impact at all, but
+stitching the image together by matching edges incorrectly was a fatal failure.
+I re-read the code innumerable times before noticing this flaw and as soon as I
+switched them around the second star was mine. Everything else I had written on
+this day worked as planned and 'perfectly'. It was easily my most impressive
+showing of the year but pride very much came before a fall.
+
+On to...
+
+### Meet the new functions, same as the... wait no they're not!
+
+{% highlight python %}
+
+def remove_border(pattern):
+    """."""
+    pattern = pattern[1:-1]
+    trimmed_pattern = []
+    for row in pattern:
+        trimmed_pattern.append(row[1:-1])
+
+    return trimmed_pattern
+
+
+def find_all_monsters(seas):
+    """."""
+    # Using leftmost part of monster, come up with coords relative to it
+    mon_coords = [(1, 1), (1, 4), (0, 5), (0, 6), (1, 7),
+                  (1, 10), (0, 11), (0, 12), (1, 13), (1, 16),
+                  (0, 17), (0, 18), (-1, 18), (0, 19)
+    ]
+    monsters = 0
+    num_hashes = 0
+    for x, row in enumerate(seas):
+        for y, char in enumerate(row):
+            if char == '#':
+                if check_for_monster(x, y, mon_coords, seas):
+                    monsters += 1
+                num_hashes += 1
+    if monsters:
+        return (num_hashes, monsters)
+
+
+def check_for_monster(x, y, mon_coords, seas):
+    """."""
+    for coord in mon_coords:
+        check_x, check_y = (x + coord[0], y + coord[1])
+        try:
+            if seas[check_x][check_y] != '#':
+                return False
+        except IndexError:
+            return False
+
+    return True
+
+{% endhighlight %}
+
+Removing the border of each tile needs no explanation but the others could
+benefit from it:
+
+The find_all_monsters function takes the image and the representation of the
+monster - I took the multiline string from the website and represented it as
+tuples of the x and y coordinates of the hashes relative to the leftmost part
+of the monster - and counts the number of hashes and monsters and returns them.
+The identifying of the monsters is left to...
+
+The check_for_monster function uses the tuples of relative coordinates
+described above and checks each one to see if it is a hash. This is all that
+matters as per the puzzle description, the spaces could be hashes it doesn't
+matter the monster still counts. The function returns False when either a coord
+isn't a hash or is out of range of the image (as caught by the exception) and
+if the iteration through the mon_coords completes it returns True as that is a
+valid monster.
+
+That's the functions for part two. Simple additions that worked as smoothly as
+the rest of today's code, took at most half an hour to write yet due to the
+aforementioned error took all day to deliver the right answer. 
+
+Below is the full code as it stands so you can see how I went two for two for
+the twentieth time this year:
+
+{% highlight python %}
+
+from math import isqrt
+
+
+class image_tile:
+    """."""
+
+    def __init__(self, id_num, tile):
+        """."""
+        self.id_num = id_num
+        self.tile = tile
+        self.patterns = generate_patterns(tile)
+
+        self.pattern_to_edges = self.map_pattern_to_edges()
+
+    def map_pattern_to_edges(self):
+        """."""
+        pattern_to_edges = {}
+        for index, pattern in enumerate(self.patterns):
+            top = pattern[0]
+            right = [row[-1] for row in pattern]
+            bottom = pattern[-1]
+            left = [row[0] for row in pattern]
+            pattern_to_edges[index] = {'top': top, 'right': right,
+                                       'bot': bottom, 'left': left
+            }
+
+        return pattern_to_edges
+
+
+def generate_patterns(pattern):
+    """."""
+    patterns = [pattern]
+    new_patterns = []
+    flipped_patterns = pattern_flips(pattern)
+    for pattern in flipped_patterns:
+        new_patterns.extend(pattern_rotations(pattern))
+        new_patterns.extend([pattern])
+
+    for pattern in new_patterns:
+        if pattern not in patterns:
+            patterns.append(pattern)
+
+    return patterns
+
+
+def pattern_flips(pattern):
+    """."""
+    horizontal = pattern[::-1]
+    vertical = [row[::-1] for row in pattern if row]
+    both = [row[::-1] for row in pattern[::-1] if row]
+
+    return [horizontal] + [vertical] + [both]
+
+
+def pattern_rotations(pattern):
+    """."""
+    rotated = []
+    tile = pattern.copy()
+    for _ in range(3):
+        rotated_tile = zip(*tile[::-1])
+        new_tile = []
+        for tup in rotated_tile:
+            new_tile.append(list(tup))
+        rotated.append(new_tile)
+
+    return rotated
+
+
+def generate_image_dfs(tiles):
+    """."""
+    size = isqrt(len(tiles))
+    image = []
+    for _ in range(size**2):
+        image.append([])
+
+    stack = []
+    for tile in tiles:
+        for index, _ in enumerate(tile.patterns):
+            image_copy = image.copy()
+            image_copy[0] = (tile, index)
+            stack.append((image_copy, set([tile])))
+
+    while stack:
+        image, used_tiles = stack.pop()
+
+        if len(used_tiles) == len(tiles):
+            return image
+
+        current_index = len(used_tiles)
+        x, y = divmod(current_index, size)
+
+        above_pattern = None
+        left_pattern = None
+
+        if x != 0:
+            above_tile, index = image[current_index - size]
+            above_pattern = above_tile.pattern_to_edges[index]['bot']
+
+        if y != 0:
+            left_tile, index = image[current_index - 1]
+            left_pattern = left_tile.pattern_to_edges[index]['right']
+
+        for tile in tiles:
+            if tile in used_tiles:
+                continue
+
+            for index, _ in enumerate(tile.patterns):
+
+                if above_pattern:
+                    if tile.pattern_to_edges[index]['top'] != above_pattern:
+                        continue
+
+                if left_pattern:
+                    if tile.pattern_to_edges[index]['left'] != left_pattern:
+                        continue
+
+                image[current_index] = (tile, index)
+                used_tiles.add(tile)
+                stack.append((image.copy(), used_tiles))
+
+
+def remove_border(pattern):
+    """."""
+    pattern = pattern[1:-1]
+    trimmed_pattern = []
+    for row in pattern:
+        trimmed_pattern.append(row[1:-1])
+
+    return trimmed_pattern
+
+
+def find_all_monsters(seas):
+    """."""
+    # Using leftmost part of monster, come up with coords relative to it
+    mon_coords = [(1, 1), (1, 4), (0, 5), (0, 6), (1, 7),
+                  (1, 10), (0, 11), (0, 12), (1, 13), (1, 16),
+                  (0, 17), (0, 18), (-1, 18), (0, 19)
+    ]
+    monsters = 0
+    num_hashes = 0
+    for x, row in enumerate(seas):
+        for y, char in enumerate(row):
+            if char == '#':
+                if check_for_monster(x, y, mon_coords, seas):
+                    monsters += 1
+                num_hashes += 1
+    if monsters:
+        return (num_hashes, monsters)
+
+
+def check_for_monster(x, y, mon_coords, seas):
+    """."""
+    for coord in mon_coords:
+        check_x, check_y = (x + coord[0], y + coord[1])
+        try:
+            if seas[check_x][check_y] != '#':
+                return False
+        except IndexError:
+            return False
+
+    return True
+
+with open('inputs/day_20.txt') as f:
+    raw_tiles = f.read().split('\n\n')
+
+tiles = []
+for tile in raw_tiles:
+    tile = tile.split('\n')
+    title = int(tile[0].strip("Tile ")[:-1])
+    tile = [x for x in tile[1:] if x]
+    split_tile = []
+    for row in tile:
+        split_row = []
+        for char in row:
+            split_row.append(char)
+        split_tile.append(split_row)
+    tiles.append(image_tile(title, split_tile))
+
+size = isqrt(len(tiles))
+reassembled_image = generate_image_dfs(tiles)
+corners = [0, -1, 0 + size - 1, (len(tiles) -1) - (size - 1)]
+corners_product = 1
+for corner in corners:
+    corners_product *= reassembled_image[corner][0].id_num
+
+# Answer One
+print("Product of corner ids of reassembled_image", corners_product)
+
+final_image = []
+for tile in reassembled_image:
+    image_tile, pattern_index = tile
+    pattern = image_tile.patterns[pattern_index]
+    borderless = remove_border(pattern)
+    final_image.append(borderless)
+
+joined_image = []
+index = 0
+while index < size**2:
+    for i in range(len(borderless[0])):
+        row = []
+        for j in range(size):
+            row.extend(final_image[j + index][i])
+        joined_image.append(row)
+    index += size
+
+joined_image_patterns = generate_patterns(joined_image)
+for sea in joined_image_patterns:
+    monsters_found = find_all_monsters(sea)
+    if monsters_found:
+        break
+
+num_hashes, num_monsters = monsters_found
+
+# Answer Two
+print("Water roughness:", num_hashes - (num_monsters * 15))
+
+{% endhighlight %}
+
+## Overall
+
+I think this was the hardest day of the year. It required a lot of separate
+steps, some difficult to visualise manipulations of patterns and was far less
+prescriptive than the game-based puzzles that populate much of this year's
+puzzles. It is also, by far, my favourite. Not just because of the difficulty,
+which it's true did make solving it all the sweeter, but because I feel like I
+made inspired, creative decisions throughout that came together quickly and
+worked better than I expected. If this is the high-point of AoC this year I'll
+be satisfied and that is something that I don't want to go understated.
