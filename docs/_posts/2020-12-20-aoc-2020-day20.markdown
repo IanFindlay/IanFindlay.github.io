@@ -1,0 +1,406 @@
+---
+layout: post
+title:  "Advent of Code 2020 - Day 20: Jurassic Jigsaw"
+date:   2020-12-20
+categories: advent-of-code
+tags: advent-of-code advent-of-code-2020 python
+---
+
+The weekend before Christmas is often the hardest time during AoC and this year
+was no exception despite the overall difficulty drop. Unlike yesterday this
+challenge, though at least as tough to surmount, left me not only satisfied but
+feeling rather smug.
+
+To witness this monster yourself visit
+[the official page](https://adventofcode.com/2020/day/20) but be sure to come
+back to see how I conquered this complex foe.
+
+## Part One - Flip, Flip Array
+
+This monster has many heads so let's start by attacking the first - the parsing
+of the input:
+
+{% highlight python %}
+
+with open('inputs/day_20.txt') as f:
+    raw_tiles = f.read().split('\n\n')
+
+tiles = []
+for tile in raw_tiles:
+    tile = tile.split('\n')
+    title = int(tile[0].strip("Tile ")[:-1])
+    tile = [x for x in tile[1:] if x]
+    split_tile = []
+    for row in tile:
+        split_row = []
+        for char in row:
+            split_row.append(char)
+        split_tile.append(split_row)
+    tiles.append(image_tile(title, split_tile))
+
+{% endhighlight %}
+
+### Parse and parcel of monster hunting
+
+Splitting the input by two newlines separates the tiles, both title and
+pattern, from one another and was an obvious first step. Next, I dealt with the
+'title' by splitting by newline, which actually splits each row of the pattern
+from one another as well as the 'title' line, and stripping/splicing all but
+the number from the line. I considered using regex and extracting the group of
+digits from the rest that way but the above manipulations saved the import,
+were easy to conceive of and visualise when reading the code.
+
+With the title dealt with, I again used splicing to remove it from
+consideration as I went row by row creating a nested list representing the
+pattern of each tile. The title and pattern list were used to initialise the
+data structure that has proven to be so useful throughout - a list that holds
+instances of a...
+
+### Kingdom, phylum, class
+
+The image_tile class allowed me a very explicit way to associate a tile with
+its various possible configurations and retain flexibility for whatever part
+two may demand. Ignore the glaring omission of docstrings and let me take
+you through the methods so you can see what happens to the data during the
+parsing above:
+
+#### Initialisation of the image_tile
+
+{% highlight python %}
+
+class image_tile:
+    """."""
+
+    def __init__(self, id_num, tile):
+        """."""
+        self.id_num = id_num
+        self.tile = tile
+        self.patterns = self.generate_patterns()
+
+        self.pattern_to_edges = self.map_pattern_to_edges()
+
+{% endhighlight %}
+
+The initialisation of the class isn't particularly exciting but I've isolated
+it anyway to mention one thing - calling the methods directly from it. This
+front-ends the processing of each puzzle piece during the parsing rather than
+calling these methods as and when I need them but I think it makes sense in
+this instance as:
+
+- I already knew I would make all of the transformation and then
+process them as opposed to generating possibilities one at a time and trying
+to make the puzzle pieces I had fit together. This is because I expected the
+transformations to be fairly quick and the process of piecing them together to
+be less so therefore redundancy here is better than redundancy later.
+
+- If only one tile needed the final flip or rotation pattern to complete the
+puzzle then, if I generated the patterns in a specified order which seems the
+manner least prone to error, I would have to generate damn near all of the
+patterns anyway. This wouldn't be the case if each tile could only connect to
+one other tile but this wasn't stated in the question and almost certainly
+wasn't going to be the case.
+
+- Having a separate 'While' loop just to run the methods seems like a waste of
+an iteration with all of the above considered.
+
+#### Manipulating and preparing the puzzle pieces
+
+So, onto the more meaty methods; there are two different things I wanted from
+my tiles: the possible pattern transformations and an index of their edges,
+in each configuration, so I wouldn't have to recalculate them each time I was
+trying to match two pieces together. Here's the pattern generating methods:
+
+{% highlight python %}
+
+    def generate_patterns(self):
+        """."""
+        patterns = [self.tile]
+        new_patterns = []
+        flipped_patterns = self.pattern_flips()
+        for pattern in flipped_patterns:
+            new_patterns.extend(self.pattern_rotations(pattern))
+            new_patterns.extend([pattern])
+
+        for pattern in new_patterns:
+            if pattern not in patterns:
+                patterns.append(pattern)
+
+        return patterns
+
+    def pattern_flips(self):
+        """."""
+        horizontal = self.tile[::-1]
+        vertical = [list(row[::-1]) for row in tile if row]
+        both = [list(row[::-1]) for row in tile[::-1] if row]
+
+        return [horizontal] + [vertical] + [both]
+
+    def pattern_rotations(self, pattern):
+        """."""
+        rotated = []
+        tile = pattern.copy()
+        for _ in range(3):
+            rotated_tile = zip(*tile[::-1])
+            new_tile = []
+            for tup in rotated_tile:
+                new_tile.append(list(tup))
+            rotated.append(new_tile)
+
+        return rotated
+
+{% endhighlight %}
+
+The generate_patterns function coordinates the other two and returns the
+results of first flipping the initial pattern and then rotating all of these
+new patterns. There is some repetition here, as the result of certain flips and
+rotations are the same, hence the iteration through all of these patterns at
+the end.
+
+Flipping the patterns was a matter of list splicing and comprehension and
+whilst it took some pen and paper doodling to arrive at the transformations
+I think the logic of them is fairly easy to follow:
+
+- The vertical flip simply reverses each row using list splicing.
+
+- The horizontal flip does the same thing but instead of reversing each row it
+reverses the order of the rows - the same thing but one level of magnification
+further up.
+
+- The remaining flip performs both of these at the same time.
+
+After these flips comes the rotation and these again took some jotting down on
+paper to understand. Unlike the above, however, I think the implementation
+is more obtuse. The use of zip is something I've come across with matrices
+before and it took me a while to visualise it so allow me to explain how
+the pattern_rotations function... well... functions:
+
+- There are three 90 degree rotations that have to be generated hence the 'for'
+statement. I use the single underscore as a throwaway variable as I don't need
+the number variable for anything, I just need to repeat what I am doing three
+times.
+
+- The zip function takes multiple iterables and pairs the nth element of one
+with the nth element of the rest into a tuple - technically it returns a zip
+object but think of it as a list of tuples so we can focus on how it rotates
+the pattern.
+
+- Pairing the nth elements gets us some way to the transformation required, the
+columns have become the rows and vice versa, but this doesn't fully map to the
+desired 90 degree, clockwise rotation. The easiest way to visualise why is to
+think of the top-left item i.e. the 0th column of the 0th row. This hasn't
+moved.
+
+- The values in this new 0th row are correct in terms of whether they should be
+there or not but the order is wrong. The old top-left item shouldn't remain in
+the 0th column of the 0th row but move to the last column. In its old place
+should be the 0th value of the last row - picture the rotation and this should
+be fairly clear. 
+
+- So, rotation means that rows become columns and we want the first row to now
+become the last column i.e. the last value added to each zipped row tuple.
+Thus, we need to reverse the order the rows are processed in and that is what
+the list splicing of [::-1] achieves.
+
+From there, I rather inefficiently converted each tuple back into a list and
+reformed the now rotated pattern from these 'row tuples'.
+
+We have flipped, we have rotated and we have flipped and rotated so it is time
+to make reassembling the image as easy as possible by cataloguing the...
+
+
+#### Edge cases
+
+    def map_pattern_to_edges(self):
+        """."""
+        pattern_to_edges = {}
+        for index, pattern in enumerate(self.patterns):
+            top = pattern[0]
+            right = [row[0] for row in pattern]
+            bottom = pattern[-1]
+            left = [row[-1] for row in pattern]
+            pattern_to_edges[index] = {'top': top, 'right': right,
+                                       'bot': bottom, 'left': left
+            }
+
+        return pattern_to_edges
+
+{% endhighlight %}
+
+I have a list of patterns and in order to associate the edges with the correct
+variation of the original pattern I decided to map them to a dictionary using
+the index of the pattern as the key and a dictionary of the four edges ('top',
+'right', 'bot', 'left') and a list of the edge's constituent parts as the key.
+
+The above worked very well with the exception of one error. It's not hard to
+spot and it didn't prevent me from getting this first star but it completely
+scuppered the second part of today for me. I wrote what I thought was a fairly
+bulletproof part one but the small error above shattered through the
+flexibility of the class and the effort I went to reassembling the image as
+opposed to merely identifying which tiles had to be the four corners.
+
+I'll save further lamentations for later but see if you can spot it and
+anticipate how it might have mangled the next puzzle and was incredibly hard to
+diagnose.
+
+We've already written quite a lot of code but all of it was in preparation for
+the main workhorse...
+
+### Deft forced solving
+
+I decided early on that, though this wasn't a maze, I wanted to utilise a DFS
+to reassemble the image. The way I broke down the problem was to think about
+the final image as steps, from top-left to bottom-right, consisting of
+patterns whose edges had to fit together. A (D)epth (F)irst (S)earch would
+allow me to stitch the image together as best as I could, retreat a step or two
+back when my valid options ran out, and after many false starts and near misses
+arrive at the fully reassembled image.
+
+Here's the remainder of part one sans the DFS so you can see how I got from the
+tiles and their variations above to the product of the four corners:
+
+{% highlight python %}
+
+from math import isqrt
+
+
+size = isqrt(len(tiles))
+reassembled_image = generate_image_dfs(tiles)
+corners = [0, -1, 0 + size - 1, (len(tiles) -1) - (size - 1)]
+corners_product = 1
+for corner in corners:
+    corners_product *= reassembled_image[corner][0].id_num
+
+# Answer One
+print("Product of corner ids of reassembled_image", corners_product)
+
+{% endhighlight %}
+
+The import of isqrt is to work out, purely from the number of tiles, the
+dimensions of the square image are. It isn't the square root function, which
+returns a float, it instead returns an integer which is what I wanted.
+
+Here's how I stitched my way to the first star:
+
+{% highlight python %}
+
+def generate_image_dfs(tiles):
+    """."""
+    size = isqrt(len(tiles))
+    image = []
+    for _ in range(size**2):
+        image.append([])
+
+    stack = []
+    for tile in tiles:
+        for index, _ in enumerate(tile.patterns):
+            image_copy = image.copy()
+            image_copy[0] = (tile, index)
+            stack.append((image_copy, set([tile])))
+
+    while stack:
+        image, used_tiles = stack.pop()
+
+        current_index = len(used_tiles)
+        x, y = divmod(current_index, size)
+
+        above_pattern = None
+        left_pattern = None
+
+        if x != 0:
+            above_tile, index = image[current_index - size]
+            if above_tile:
+                above_pattern = above_tile.pattern_to_edges[index]['bot']
+
+        if y != 0:
+            left_tile, index = image[current_index - 1]
+            if left_tile:
+                left_pattern = left_tile.pattern_to_edges[index]['right']
+
+        for tile in tiles:
+            if tile in used_tiles:
+                continue
+
+            for index, _ in enumerate(tile.patterns):
+
+                if above_pattern:
+                    if tile.pattern_to_edges[index]['top'] != above_pattern:
+                        continue
+
+                if left_pattern:
+                    if tile.pattern_to_edges[index]['left'] != left_pattern:
+                        continue
+
+                image[current_index] = (tile, index)
+                used_tiles.add(tile)
+                stack.append((image.copy(), used_tiles))
+
+                if x == size - 1 and y == size - 1:
+                    return image
+
+{% endhighlight %}
+
+#### Pre-loop preparations
+
+I first create a nested list structure representative of the completed image.
+This again uses the imported isqrt function and reinforces the visualisation
+behind my approach as filling in the tiles of a blank image one-by-one
+methodically as opposed to finding all possible connection between tiles and
+working out the correct sequence from those.
+
+Then, I create the stack which consists of tuples containing:
+
+- A copy of the above - a copy is required or else every attempt at
+reconstituting the image would poison the next.
+
+- The first 'square' of the copied image is filled with one of the possible
+patterns per tuple. This is the 'starting tile' in the top-left position of
+the image. An important note is that I don't store the nested list representing
+the actual pattern here. I have all of these patterns within the class, there
+is no need to duplicate it. Instead, I add a tuple of the instance of the tile
+class that contains the pattern and the key (which as mentioned above is based
+upon the index of the pattern in the list) that corresponds to it.
+
+- A set containing the chosen 'starting tile'. This set tracks the tiles that
+have been used in this tuple's attempt at image recomposition ensuring that a
+filled image means all of the tiles have been used.
+
+#### Enter the loop
+
+Popping a tuple described above starts the looped aspect of the function.
+In order to know how the next image should fit with this one I need to know
+where we are in terms of filling the image; I find out how much of it is filled
+already using len() then use divmod to find the 'x' and 'y' / 'row' and
+'column' we are trying to fill. As I am filling the image top-left to
+bottom-right, there are only two edges I actually need to be aware of in terms
+of the tiles already placed:
+
+- The above tile's bottom edge if I am on any but the first row.
+
+- The left-hand adjacent tile's right edge if I am on any but the first column.
+
+The variable names may be a little confusing at first but from the perspective
+of the tile above/left of the currently considered position the naming makes
+sense.
+
+Armed with what the tiles left and top edge must look like, I then iterate
+through the tile instances, ignoring any that have already been used, and go
+through each pattern by index to check that it has the edges necessary to fit
+in the space. If it does, I add it to the image, form the updated tuple and
+shove it at the top (last position of a list that gets 'pop'ped) of the stack.
+
+If none of the remaining tiles can possibly fit into this space then no tuple
+is made effectively killing the leading edge of this branch of possibilities.
+
+If, when trying to fill the last remaining image slot, we avoid the 'continue'
+breaks that mark an incorrect fit we know we have fully assembled the image.
+
+### Summarise this
+
+As you can see, and as my fingers can attest to both on the day and when typing
+it all up just now, there was quite a lot that went in to this code. The error
+I mentioned and will delve into soon aside, I am very happy with how I broke
+this problem down into its constituent parts and conquered each of these
+smaller monsters. The DFS for reassembling the image worked beautifully, ran
+far quicker than I though it would and felt like a genuine moment
+of inspiration the likes of which I come back to AoC each year for. With such a
+robust and well functioning part one I wasn't particularly worried about...
